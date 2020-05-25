@@ -28,13 +28,13 @@
         <div class="cells">
             <h3>Data cell list
                 &nbsp;<button @click.prevent="newCell()">Create Cell</button>
-                &nbsp;<button @click.prevent="reload()">Refresh</button>
+                &nbsp;<button @click.prevent="reload()">Refresh{{loading && "ing.." || ""}}</button>
             </h3>
             <div v-if="!filledCells" class="no-data">
                 No Data Cells
             </div>
             <div>
-                <div class="cell" v-for="cell in filledCells" :key="cell.block_number">
+                <div class="cell" v-for="cell in filledCells" :key="cell.out_point.tx_hash + cell.out_point.index">
                     <div class="cell-header">
                         Capacity: {{formatCkb(cell.output.capacity)}}
                         <div class="cell-ops">
@@ -97,11 +97,13 @@
                 showModel: false,
                 mode: undefined,
                 editData: "",
+                loading: false,
             }
         },
         components: {},
         methods: {
             reload: async function () {
+                this.loading = true
                 this.publicKey = privateKeyToPublicKey(`0x${this.privateKey}`)
                 this.address = pubkeyToAddress(this.publicKey, {
                     // "ckb" for mainnet, "ckt" for testnet
@@ -114,14 +116,19 @@
                     hashType: "type",
                     args: this.lockArg,
                 }
-                this.cells = await this.getCells(this.lockArg)
+                try {
+                    this.cells = await this.getCells(this.lockArg)
+                } catch (e) {
+                    alert("error:" + e)
+                    console.log(e)
+                }
+                this.loading = false
                 this.summary = this.getSummary(this.cells)
                 console.log("summary:", this.summary)
                 const {emptyCells, filledCells} = this.groupCells(this.cells)
                 this.emptyCells = emptyCells
                 this.filledCells = filledCells
-                //todo: test only
-                this.filledCells = this.cells;
+                // this.filledCells = this.cells;
                 console.log("emptyCells:", this.emptyCells)
             },
             formatCkb: function (c) {
@@ -164,6 +171,7 @@
                     version: "0x0",
                     cellDeps: [{
                         outPoint: {
+                            // a fixed value for testnet
                             txHash: "0xf8de3bb47d055cdf460d93a2a6e1b05f7432f9777c8c474abf4eec1d4aee5d37",
                             index: "0x0"
                         },
@@ -245,45 +253,90 @@
                 const ckb = new CKB("https://prototype.ckbapp.dev/testnet/rpc")
                 const signedTx = ckb.signTransaction(`0x${this.privateKey}`)(rawTx)
                 console.log("signedTx:", JSON.stringify(signedTx))
+                this.loading = true
                 try {
                     await ckb.rpc.sendTransaction(signedTx)
                 } catch (e) {
                     console.log("sendTransaction error:", e)
+                    alert("error:", e)
                 }
+                this.loading = false
+                this.showModel = false
+                setTimeout(() => {
+                    this.reload()
+                }, 1000)
             },
             getCells: async function (lockArg) {
-                let a = 1;
-                if (a == 1) {
-                    let response = {
-                        "jsonrpc": "2.0",
-                        "result": {
-                            "last_cursor": "0x409bd7e06f3ecf4be0f2fcd2188b23f1b9fcc88e5d4b65a8637b17723bbda3cce80114000000705ca2e725e9b26e6abb842ed2043ea80197dfd70000000000001fbf0000000100000000",
-                            "objects": [
-                                {
-                                    "block_number": "0x1fbf",
-                                    "out_point": {
-                                        "index": "0x0",
-                                        "tx_hash": "0xaf81c2d0a2d903a22095259d3ad34183bbde8e1634a3ee22ace605198f36e5a0"
-                                    },
-                                    "output": {
-                                        "capacity": "0x746a528800",
-                                        "lock": {
-                                            "args": "0x705ca2e725e9b26e6abb842ed2043ea80197dfd7",
-                                            "code_hash": "0x9bd7e06f3ecf4be0f2fcd2188b23f1b9fcc88e5d4b65a8637b17723bbda3cce8",
-                                            "hash_type": "type"
+                let a = 2;
+                // for test only
+                if (a === 1) {
+                    let response =
+                        {
+                            "jsonrpc": "2.0",
+                            "result": {
+                                "last_cursor": "0x409bd7e06f3ecf4be0f2fcd2188b23f1b9fcc88e5d4b65a8637b17723bbda3cce80114000000705ca2e725e9b26e6abb842ed2043ea80197dfd7000000000000300e0000000100000001",
+                                "objects": [
+                                    {
+                                        "block_number": "0x2f62",
+                                        "out_point": {
+                                            "index": "0x0",
+                                            "tx_hash": "0x2d6e2f573be0527baa28cd2fc1d36ffeabd6a9fc9145f9aed1b26a11bd794bcd"
                                         },
-                                        "type": null
+                                        "output": {
+                                            "capacity": "0x177825f00",
+                                            "lock": {
+                                                "args": "0x705ca2e725e9b26e6abb842ed2043ea80197dfd7",
+                                                "code_hash": "0x9bd7e06f3ecf4be0f2fcd2188b23f1b9fcc88e5d4b65a8637b17723bbda3cce8",
+                                                "hash_type": "type"
+                                            },
+                                            "type": null
+                                        },
+                                        "output_data": "0xc3d4",
+                                        "tx_index": "0x1"
                                     },
-                                    "output_data": "0x",
-                                    "tx_index": "0x1"
-                                }
-                            ]
-                        },
-                        "id": 2
-                    }
-
+                                    {
+                                        "block_number": "0x300e",
+                                        "out_point": {
+                                            "index": "0x0",
+                                            "tx_hash": "0x501f0f0bb8715fc4fa1ad46485775cc67855908a718265bce8926fd602b3c756"
+                                        },
+                                        "output": {
+                                            "capacity": "0x1836e2100",
+                                            "lock": {
+                                                "args": "0x705ca2e725e9b26e6abb842ed2043ea80197dfd7",
+                                                "code_hash": "0x9bd7e06f3ecf4be0f2fcd2188b23f1b9fcc88e5d4b65a8637b17723bbda3cce8",
+                                                "hash_type": "type"
+                                            },
+                                            "type": null
+                                        },
+                                        "output_data": "0x12345678",
+                                        "tx_index": "0x1"
+                                    },
+                                    {
+                                        "block_number": "0x300e",
+                                        "out_point": {
+                                            "index": "0x1",
+                                            "tx_hash": "0x501f0f0bb8715fc4fa1ad46485775cc67855908a718265bce8926fd602b3c756"
+                                        },
+                                        "output": {
+                                            "capacity": "0x716f61f090",
+                                            "lock": {
+                                                "args": "0x705ca2e725e9b26e6abb842ed2043ea80197dfd7",
+                                                "code_hash": "0x9bd7e06f3ecf4be0f2fcd2188b23f1b9fcc88e5d4b65a8637b17723bbda3cce8",
+                                                "hash_type": "type"
+                                            },
+                                            "type": null
+                                        },
+                                        "output_data": "0x",
+                                        "tx_index": "0x1"
+                                    }
+                                ]
+                            },
+                            "id": 2
+                        }
                     return response.result.objects;
                 }
+                this.loading = true
                 let payload = {
                     "id": 2,
                     "jsonrpc": "2.0",
@@ -305,27 +358,34 @@
                 }
                 const body = JSON.stringify(payload, null, "  ")
                 console.log("request body:", body)
-                //todo: testnet indexer
-                let url = "http://localhost:8117/indexer"
-                let res = await fetch(url, {
-                    method: "POST",
-                    body,
-                    headers: {
-                        "Accept": "application/json",
-                        "Content-Type": "application/json",
-                        // "Content-Type": "text/plain",
-                        // "Origin": "http://localhost:8080",
-                        // "Access-Control-Allow-Origin": "*",
-                        // "Access-Control-Request-Method": "POST",
-                        // "Access-Control-Request-Headers": "content-type"
-                    },
-                    mode: "cors",
-                })
-                // res = await res.text()
-                res = await res.json()
-                // res = await res.text()
-                console.log(res)
-                return res.result.objects
+                // let url = "http://localhost:8117/indexer"
+                let url = "https://prototype.ckbapp.dev/testnet/indexer"
+                try {
+                    let res = await fetch(url, {
+                        method: "POST",
+                        body,
+                        cache: "no-store",
+                        headers: {
+                            // "Accept": "application/json",
+                            "Content-Type": "application/json",
+                            // "Content-Type": "text/plain",
+                            // "Origin": "http://localhost:8080",
+                            // "Access-Control-Allow-Origin": "*",
+                            // "Access-Control-Request-Method": "POST",
+                            // "Access-Control-Request-Headers": "content-type"
+                        },
+                        mode: "cors",
+                    })
+                    // res = await res.text()
+                    res = await res.json()
+                    // res = await res.text()
+                    console.log(res)
+                    return res.result.objects
+                } catch (e) {
+                    console.log("error:", e)
+                    alert("error:" + e)
+                }
+                this.loading = false
             },
             groupCells: function (cells) {
                 let emptyCells = [];
