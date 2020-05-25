@@ -162,14 +162,13 @@
             getRawTxTemplate: function () {
                 return {
                     version: "0x0",
-                    cellDeps: [],
-                    // cellDeps: [{
-                    //     outPoint: {
-                    //         txHash: "0x9af66408df4703763acb10871365e4a21f2c3d3bdc06b0ae634a3ad9f18a6525",
-                    //         index: "0x0"
-                    //     },
-                    //     depType: "depGroup",
-                    // }],
+                    cellDeps: [{
+                        outPoint: {
+                            txHash: "0xf8de3bb47d055cdf460d93a2a6e1b05f7432f9777c8c474abf4eec1d4aee5d37",
+                            index: "0x0"
+                        },
+                        depType: "depGroup",
+                    }],
                     headerDeps: [],
                     inputs: [],
                     outputs: [],
@@ -193,7 +192,7 @@
                     total = capacity.add(new BN("1000"))
 
                     rawTx.outputs.push({
-                        capacity: `0x${capacity}`,
+                        capacity: `0x${capacity.toString(16)}`,
                         lock: this.toLock,
                     })
                     rawTx.outputsData.push(editData)
@@ -243,9 +242,9 @@
                     outputType: "",
                 }
                 //sign
-                const ckb = new CKB("https://prototype.ckbapp.dev/testnet")
+                const ckb = new CKB("https://prototype.ckbapp.dev/testnet/rpc")
                 const signedTx = ckb.signTransaction(`0x${this.privateKey}`)(rawTx)
-                console.log("signedTx:", signedTx)
+                console.log("signedTx:", JSON.stringify(signedTx))
                 try {
                     await ckb.rpc.sendTransaction(signedTx)
                 } catch (e) {
@@ -307,12 +306,12 @@
                 const body = JSON.stringify(payload, null, "  ")
                 console.log("request body:", body)
                 //todo: testnet indexer
-                let url = "https://prototype.ckbapp.dev/testnet/indexer"
+                let url = "http://localhost:8117/indexer"
                 let res = await fetch(url, {
                     method: "POST",
                     body,
                     headers: {
-                        // "Accept": "application/json",
+                        "Accept": "application/json",
                         "Content-Type": "application/json",
                         // "Content-Type": "text/plain",
                         // "Origin": "http://localhost:8080",
