@@ -6,17 +6,11 @@
             <form>
                 <fieldset>
                     <div class="row">
-                        <label for="private_key">
-                            Please input test private key:
-                        </label>
-                        <input id="private_key" v-model="privateKey"/> &nbsp;
-                        <button @click.prevent="reload">Confirm</button>
-                    </div>
-                    <div class="row">
                         <label for="address">
                             Your testnet address:
                         </label>
                         <input id="address" disabled :value="address"/>
+                        <button @click.prevent="reload">Get Info</button>
                     </div>
                     <div class="row">
                         <label for="balance">
@@ -72,14 +66,15 @@
     import * as BN from "bn.js";
     import {
         hexToBytes,
-        privateKeyToPublicKey,
-        pubkeyToAddress,
-        blake160,
+        // privateKeyToPublicKey,
+        // pubkeyToAddress,
+        // blake160,
         utf8ToBytes,
         bytesToHex,
         hexToUtf8,
     } from "@nervosnetwork/ckb-sdk-utils";
     import CKB from "@nervosnetwork/ckb-sdk-core";
+    console.log('131231 ')
 
     export default {
         name: 'App',
@@ -108,30 +103,37 @@
         methods: {
             reload: async function () {
                 this.loading = true
-                this.publicKey = privateKeyToPublicKey(`0x${this.privateKey}`)
-                this.address = pubkeyToAddress(this.publicKey, {
-                    // "ckb" for mainnet, "ckt" for testnet
-                    prefix: "ckt"
-                })
-                this.lockArg = `0x${blake160(this.publicKey, 'hex')}`
-                this.toLock = {
-                    // SECP256K1_BLAKE160_SIGHASH_ALL_TYPE_HASH, fixed
-                    codeHash: "0x9bd7e06f3ecf4be0f2fcd2188b23f1b9fcc88e5d4b65a8637b17723bbda3cce8",
-                    hashType: "type",
-                    args: this.lockArg,
+                console.log('reload')
+                const { data: addressInfo } = window.ckb && await window.ckb.getAddressInfo();
+                if (!addressInfo) return;
+                console.log('addressInfo: ', addressInfo)
+                const { publicKey, address, capacity } = addressInfo
+                this.publicKey = publicKey
+                this.address = address
+                this.summary = {
+                    inuse: 0,
+                    free: capacity,
+                    capacity,
                 }
-                try {
-                    this.cells = await this.getCells(this.lockArg)
-                } catch (e) {
-                    alert("error:" + e)
-                    console.log(e)
-                }
-                this.loading = false
-                this.summary = this.getSummary(this.cells)
-                console.log("summary:", this.summary)
-                const {emptyCells, filledCells} = this.groupCells(this.cells)
-                this.emptyCells = emptyCells
-                this.filledCells = filledCells
+                // this.lockArg = `0x${blake160(this.publicKey, 'hex')}`
+                // this.toLock = {
+                //     // SECP256K1_BLAKE160_SIGHASH_ALL_TYPE_HASH, fixed
+                //     codeHash: "0x9bd7e06f3ecf4be0f2fcd2188b23f1b9fcc88e5d4b65a8637b17723bbda3cce8",
+                //     hashType: "type",
+                //     args: this.lockArg,
+                // }
+                // try {
+                //     this.cells = await this.getCells(this.lockArg)
+                // } catch (e) {
+                //     alert("error:" + e)
+                //     console.log(e)
+                // }
+                // this.loading = false
+                // this.summary = this.getSummary(this.cells)
+                // console.log("summary:", this.summary)
+                // const {emptyCells, filledCells} = this.groupCells(this.cells)
+                // this.emptyCells = emptyCells
+                // this.filledCells = filledCells
             },
             formatCkb: function (c) {
                 if (typeof (c) === "undefined") {
