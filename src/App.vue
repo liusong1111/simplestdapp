@@ -73,8 +73,7 @@
         bytesToHex,
         hexToUtf8,
     } from "@nervosnetwork/ckb-sdk-utils";
-    import CKB from "@nervosnetwork/ckb-sdk-core";
-    console.log('131231 ')
+    // import CKB from "@nervosnetwork/ckb-sdk-core";
 
     export default {
         name: 'App',
@@ -125,7 +124,7 @@
                 // try {
                 //     this.cells = await this.getCells(this.lockArg)
                 // } catch (e) {
-                //     alert("error:" + e)
+                //     console.log("error:" + e)
                 //     console.log(e)
                 // }
                 // this.loading = false
@@ -222,87 +221,28 @@
                 return result
             },
             opCell: async function () {
-                const rawTx = this.getRawTxTemplate()
-                let total = new BN(0)
 
-                if (this.mode === "create" || this.mode === "update") {
-                    const editData = this.textToHex(this.editData)
-                    let bytes = hexToBytes(editData)
-                    let byteLength = bytes.byteLength
-                    let capacity = new BN(byteLength * 100000000)
-                    // State Rent
-                    capacity = capacity.add(new BN("6100000000"))
+                const editData = this.textToHex(this.editData)
+                let bytes = hexToBytes(editData)
+                let byteLength = bytes.byteLength
+                let capacity = new BN(byteLength)
+                // State Rent
+                capacity = capacity.add(new BN("61"))
+                const txRequestObj = {
+                    from: this.address,
+                    to: this.address,
+                    capacity: capacity.toString(),
+                    data: editData
+                }
+                if (!window.ckb) return;
+                const txResult = await window.ckb.send({
+                    meta: txRequestObj
+                })
+                console.log('txResult: ', txResult)
 
-                    // add Transaction Fee
-                    total = capacity.add(new BN("10000000"))
-
-                    rawTx.outputs.push({
-                        capacity: `0x${capacity.toString(16)}`,
-                        lock: this.toLock,
-                    })
-                    rawTx.outputsData.push(editData)
-                } else {
-                    total = new BN("10000000")
-                }
-
-                let cells = this.emptyCells;
-                let inputCapacity = new BN(0);
-                let ok = false
-                if (this.mode === "update" || this.mode === "delete") {
-                    cells = [this.currentCell, ...cells]
-                }
-                for (let cell of cells) {
-                    rawTx.inputs.push({
-                        previousOutput: {
-                            txHash: cell.out_point.tx_hash,
-                            index: cell.out_point.index,
-                        },
-                        since: "0x0",
-                    })
-                    rawTx.witnesses.push("0x")
-                    let cellCapacity = new BN(parseInt(cell.output.capacity))
-                    inputCapacity = inputCapacity.add(cellCapacity)
-                    if (inputCapacity.gt(total)) {
-                        if (inputCapacity.sub(total).gt(new BN("6100000000"))) {
-                            const change = inputCapacity.sub(total)
-                            rawTx.outputs.push({
-                                capacity: `0x${change.toString(16)}`,
-                                lock: this.toLock,
-                            })
-                            rawTx.outputsData.push("0x")
-                        }
-                        ok = true
-                        break
-                    }
-                }
-                if (!ok) {
-                    alert("You have not enough CKB!")
-                    return
-                }
-                rawTx.witnesses[0] = {
-                    lock: "",
-                    inputType: "",
-                    outputType: "",
-                }
-                //sign
-                const ckb = new CKB("https://prototype.ckbapp.dev/testnet/rpc")
-                const signedTx = ckb.signTransaction(`0x${this.privateKey}`)(rawTx)
-                console.log("signedTx:", JSON.stringify(signedTx, null, "  "))
-                this.loading = true
-                try {
-                    await ckb.rpc.sendTransaction(signedTx)
-                    setTimeout(() => {
-                        alert("Tx has been broadcasted, please refresh later. Typical block interval is 8~30s")
-                    }, 0)
-                } catch (e) {
-                    console.log("sendTransaction error:", e)
-                    alert("error:", e)
-                }
                 this.loading = false
                 this.showModel = false
-                setTimeout(() => {
-                    this.reload()
-                }, 1000)
+                this.reload()
             },
             getCells: async function (lockArg) {
                 let a = 2;
@@ -421,7 +361,7 @@
                     return res.result.objects
                 } catch (e) {
                     console.log("error:", e)
-                    alert("error:" + e)
+                    console.log("error:" + e)
                 }
                 this.loading = false
             },
