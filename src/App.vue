@@ -68,7 +68,7 @@
         hexToBytes,
         // privateKeyToPublicKey,
         // pubkeyToAddress,
-        // blake160,
+        blake160,
         utf8ToBytes,
         bytesToHex,
         hexToUtf8,
@@ -114,25 +114,26 @@
                     free: capacity,
                     capacity,
                 }
-                // this.lockArg = `0x${blake160(this.publicKey, 'hex')}`
-                // this.toLock = {
-                //     // SECP256K1_BLAKE160_SIGHASH_ALL_TYPE_HASH, fixed
-                //     codeHash: "0x9bd7e06f3ecf4be0f2fcd2188b23f1b9fcc88e5d4b65a8637b17723bbda3cce8",
-                //     hashType: "type",
-                //     args: this.lockArg,
-                // }
-                // try {
-                //     this.cells = await this.getCells(this.lockArg)
-                // } catch (e) {
-                //     console.log("error:" + e)
-                //     console.log(e)
-                // }
-                // this.loading = false
+                this.lockArg = `0x${blake160(this.publicKey, 'hex')}`
+                console.log('this.lockArg: ', this.lockArg)
+                this.toLock = {
+                    // SECP256K1_BLAKE160_SIGHASH_ALL_TYPE_HASH, fixed
+                    codeHash: "0x9bd7e06f3ecf4be0f2fcd2188b23f1b9fcc88e5d4b65a8637b17723bbda3cce8",
+                    hashType: "type",
+                    args: this.lockArg,
+                }
+                try {
+                    this.cells = await this.getCells(this.lockArg)
+                } catch (e) {
+                    console.log("error:" + e)
+                    console.log(e)
+                }
+                this.loading = false
                 // this.summary = this.getSummary(this.cells)
-                // console.log("summary:", this.summary)
-                // const {emptyCells, filledCells} = this.groupCells(this.cells)
-                // this.emptyCells = emptyCells
-                // this.filledCells = filledCells
+                console.log("summary:", this.summary)
+                const {emptyCells, filledCells} = this.groupCells(this.cells)
+                this.emptyCells = emptyCells
+                this.filledCells = filledCells
             },
             formatCkb: function (c) {
                 if (typeof (c) === "undefined") {
