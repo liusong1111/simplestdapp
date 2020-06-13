@@ -1,8 +1,8 @@
 <template>
     <div id="app">
         <div id="appContent">
-            <h1>Simplest dApp on CKB <a href="https://github.com/liusong1111/simplestdapp" target="_blank">(Source
-                Code)</a></h1>
+            <h1>Simplest dApp on CKB <a href="https://github.com/rebase-network/simplestdapp" target="_blank">(Source Code)</a> </h1>
+            <p>The code is forked from <a href="https://github.com/liusong1111/simplestdapp" target="_blank">liusong1111/simplestdapp</a></p>
             <form>
                 <fieldset>
                     <div class="row">
