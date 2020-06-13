@@ -3,6 +3,7 @@
         <div id="appContent">
             <h1>Simplest dApp on CKB <a href="https://github.com/rebase-network/simplestdapp" target="_blank">(Source Code)</a> </h1>
             <p>The code is forked from <a href="https://github.com/liusong1111/simplestdapp" target="_blank">liusong1111/simplestdapp</a></p>
+            <p>Please download latest version of <a href="https://github.com/rebase-network/synapse-extension/releases/" target="_blank">Synapse extension</a> before you use this dapp</p>
             <form>
                 <fieldset>
                     <div class="row">
