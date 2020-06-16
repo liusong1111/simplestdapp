@@ -76,9 +76,9 @@ export default class SDCollector extends Collector {
     const cells = await this.getCells(address);
 
     if (withData) {
-      return cells.filter((c) => !c.isEmpty());
+      return cells.filter((c) => !c.isEmpty() && !c.type);
     }
 
-    return cells.filter((c) => c.isEmpty());
+    return cells.filter((c) => c.isEmpty() && !c.type);
   }
 }
