@@ -69,7 +69,7 @@ export default class SDCollector extends Collector {
     if (!cells.length) return new Amount("0");
     return cells
       .map((c) => c.capacity)
-      .reduce((sum, cap) => (sum = Amount.ADD(sum, cap)));
+      .reduce((sum, cap) => (sum = sum.add(cap)));
   }
 
   async collect(address, neededAmount, { withData }) {

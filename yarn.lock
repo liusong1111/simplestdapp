@@ -873,10 +873,10 @@
     cssnano-preset-default "^4.0.0"
     postcss "^7.0.0"
 
-"@lay2/pw-core@^0.1.4":
-  version "0.1.4"
-  resolved "https://registry.yarnpkg.com/@lay2/pw-core/-/pw-core-0.1.4.tgz#c42f4e00145a465dee4f53ad639de2f924ab354f"
-  integrity sha512-TiPngUsKlwwoOfBQobaXupWBoZIZl8qFQzYrZc1nyHIpF5QTj1EIF7+OZnalmAQ9K4cUn1pY2tYKfeaYJNCEdA==
+"@lay2/pw-core@^0.2.0":
+  version "0.2.0"
+  resolved "https://registry.yarnpkg.com/@lay2/pw-core/-/pw-core-0.2.0.tgz#4a372240a772cb3843c9a9f919232aeac0548e41"
+  integrity sha512-+FObTeNrP0LzOVdf+nfkjOSxPCt6UTw3yvzN7y0iv4ZOuj9PdApsdptRHh9Ubk2CPGQ0FP1I3t0dTXCgVDXMYA==
   dependencies:
     "@ckb-lumos/types" "^0.2.4"
     "@nervosnetwork/ckb-sdk-utils" "^0.32.0"

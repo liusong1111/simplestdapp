@@ -23,15 +23,12 @@ export default class SDBuilder extends Builder {
     let neededAmount;
 
     if (!this.inputCell) {
-      neededAmount = Amount.ADD(this.outputCell.capacity, Builder.MIN_CHANGE);
+      neededAmount = this.outputCell.capacity.add(Builder.MIN_CHANGE);
     } else if (this.outputCell) {
-      if (Amount.LTE(this.inputCell.capacity, this.outputCell.capacity)) {
+      if (this.inputCell.capacity.lte(this.outputCell.capacity)) {
         // new cell is bigger than the old one
-        neededAmount = Amount.SUB(
-          this.outputCell.capacity,
-          this.inputCell.capacity
-        );
-        neededAmount = Amount.ADD(neededAmount, Builder.MIN_CHANGE);
+        neededAmount = this.outputCell.capacity.sub(this.inputCell.capacity);
+        neededAmount = neededAmount.add(Builder.MIN_CHANGE);
       }
     }
 
@@ -48,12 +45,12 @@ export default class SDBuilder extends Builder {
       let sum = new Amount('0');
       for (const cell of cells) {
         inputCells.push(cell);
-        sum = Amount.ADD(sum, cell.capacity);
-        if (Amount.GT(sum, neededAmount)) break;
+        sum = sum.add(cell.capacity);
+        if (sum.gt(neededAmount)) break;
       }
       console.log('[sd-builder] inputSum 2', sum.toString(AmountUnit.ckb))
 
-      if (Amount.LT(sum, neededAmount)) {
+      if (sum.lt(neededAmount)) {
         throw new Error(
           `[1] input capacity not enough, need ${neededAmount.toString(
             AmountUnit.ckb
@@ -61,10 +58,10 @@ export default class SDBuilder extends Builder {
         );
       }
 
-      inputSum = this.inputCell ? Amount.ADD(sum, this.inputCell.capacity) : sum;
+      inputSum = this.inputCell ? sum.add(this.inputCell.capacity) : sum;
 
       changeCell = new Cell(
-        Amount.SUB(inputSum, this.outputCell.capacity),
+        inputSum.sub(this.outputCell.capacity),
         PWCore.provider.address.toLockScript()
       );
     }
@@ -77,20 +74,17 @@ export default class SDBuilder extends Builder {
     this.fee = Builder.calcFee(tx);
 
     if (
-      Amount.GT(Amount.ADD(this.fee, Builder.MIN_CHANGE), changeCell.capacity)
+      this.fee.add(Builder.MIN_CHANGE).gt(changeCell.capacity)
     ) {
       // TODO: collect more cells and recalculate fee, until input capacity is
       // enough or no more available unspent cells.
       throw new Error(
-        `[2] input capacity not enough, need ${Amount.ADD(
-          this.outputCell.capacity,
-          this.fee
-        ).toString(AmountUnit.ckb)}, got ${inputSum.toString(AmountUnit.ckb)}`
+        `[2] input capacity not enough, need ${this.outputCell.capacity.add(this.fee).toString(AmountUnit.ckb)}, got ${inputSum.toString(AmountUnit.ckb)}`
       );
     }
 
     // sub fee from changeCell
-    changeCell.capacity = Amount.SUB(changeCell.capacity, this.fee);
+    changeCell.capacity = changeCell.capacity.sub(this.fee);
     tx.raw.outputs.pop();
     tx.raw.outputs.push(changeCell);
 

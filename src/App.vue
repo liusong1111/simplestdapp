@@ -224,12 +224,12 @@ export default {
       const inuse = this.filledCells.length
         ? this.filledCells
             .map(c => c.capacity)
-            .reduce((sum, cap) => Amount.ADD(sum, cap))
+            .reduce((sum, cap) => sum.add(cap))
         : new Amount("0");
       const free = this.emptyCells.length
         ? this.emptyCells
             .map(c => c.capacity)
-            .reduce((sum, cap) => Amount.ADD(sum, cap))
+            .reduce((sum, cap) => sum.add(cap))
         : new Amount("0");
 
       return {
