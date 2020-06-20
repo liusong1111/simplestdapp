@@ -873,9 +873,9 @@
     jsbi "3.1.2"
 
 "@nervosnetwork/ckb-types@0.31.0":
-  version "0.30.0"
-  resolved "https://registry.npm.taobao.org/@nervosnetwork/ckb-types/download/@nervosnetwork/ckb-types-0.30.0.tgz#72ce9f49860f1503dc0ac1ac8dea731834bd8502"
-  integrity sha1-cs6fSYYPFQPcCsGsjepzGDS9hQI=
+  version "0.31.0"
+  resolved "https://registry.yarnpkg.com/@nervosnetwork/ckb-types/-/ckb-types-0.31.0.tgz#fc8d5ad39f82e2397f204d16bbdaad93e99b88f3"
+  integrity sha512-OUcoPdMBpmXMwVvrfeQ3HVSjy1R89H0F5/T7Uwa74+7lmDBLRDyXa0t3voRtMb3TvQJHfq82yJnTAsJ9NrXoSg==
 
 "@nodelib/fs.stat@^1.1.2":
   version "1.1.3"

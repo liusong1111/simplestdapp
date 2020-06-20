@@ -31,6 +31,7 @@
                 <h3>Data cell list
                     &nbsp;<button @click.prevent="newCell()">Create Cell</button>
                     &nbsp;<button @click.prevent="reload()">Refresh{{loading && "ing.." || ""}}</button>
+                    &nbsp;<button @click.prevent="getAuth()">getAuth</button>
                 </h3>
                 <div v-if="!filledCells" class="no-data">
                     No Data Cells
@@ -79,7 +80,9 @@
         bytesToHex,
         hexToUtf8,
     } from "@nervosnetwork/ckb-sdk-utils";
-    import CKB from "@nervosnetwork/ckb-sdk-core";
+    // import CKB from "@nervosnetwork/ckb-sdk-core";
+    // import { RpcService } from "./services";
+    import {KeyperingService} from "./services";
 
     export default {
         name: 'App',
@@ -102,12 +105,15 @@
                 mode: undefined,
                 editData: "",
                 loading: false,
+                service: null,
             }
         },
         components: {},
         methods: {
             reload: async function () {
                 this.loading = true
+                // this.service = new RpcService(`0x${this.privateKey}`);
+                this.service = new KeyperingService("ws://localhost:3012");
                 this.publicKey = privateKeyToPublicKey(`0x${this.privateKey}`)
                 this.address = pubkeyToAddress(this.publicKey, {
                     // "ckb" for mainnet, "ckt" for testnet
@@ -132,6 +138,13 @@
                 const {emptyCells, filledCells} = this.groupCells(this.cells)
                 this.emptyCells = emptyCells
                 this.filledCells = filledCells
+            },
+            getAuth: async function () {
+                const result = await this.service.requestAuth({
+                    origin: "http://hello.com",
+                    description: "hello"
+                })
+                console.log("getAuth result:" + result)
             },
             formatCkb: function (c) {
                 if (typeof (c) === "undefined") {
@@ -283,19 +296,23 @@
                     outputType: "",
                 }
                 //sign
-                const ckb = new CKB("https://prototype.ckbapp.dev/testnet/rpc")
-                const signedTx = ckb.signTransaction(`0x${this.privateKey}`)(rawTx)
-                console.log("signedTx:", JSON.stringify(signedTx, null, "  "))
+                // const ckb = new CKB("https://prototype.ckbapp.dev/testnet/rpc")
+                // const signedTx = ckb.signTransaction(`0x${this.privateKey}`)(rawTx)
                 this.loading = true
-                try {
-                    await ckb.rpc.sendTransaction(signedTx)
-                    setTimeout(() => {
-                        alert("Tx has been broadcasted, please refresh later. Typical block interval is 8~30s")
-                    }, 0)
-                } catch (e) {
-                    console.log("sendTransaction error:", e)
-                    alert("error:", e)
-                }
+                // const signedTx = await this.service.signTransaction(rawTx, "hello")
+                // console.log("signedTx:", JSON.stringify(signedTx, null, "  "))
+                // try {
+                //     // await ckb.rpc.sendTransaction(signedTx)
+                //     await this.service?.sendTransaction(signedTx)
+                //     setTimeout(() => {
+                //         alert("Tx has been broadcasted, please refresh later. Typical block interval is 8~30s")
+                //     }, 0)
+                // } catch (e) {
+                //     console.log("sendTransaction error:", e)
+                //     alert("error:", e)
+                // }
+                const signedTx = await this.service.signAndSendTransaction({tx: rawTx, meta: "hello"})
+                alert("Tx has been broadcasted, please refresh later. Typical block interval is 8~30s")
                 this.loading = false
                 this.showModel = false
                 setTimeout(() => {
