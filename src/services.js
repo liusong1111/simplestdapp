@@ -74,18 +74,22 @@ export class KeyperingService {
         return await this.perform("auth", params, false)
     }
 
-    signTransaction = async ({tx, meta}) => {
+    signTransaction = async ({tx, meta, target, config}) => {
         const params = {
             tx,
             meta,
+            target,
+            config,
         }
         return await this.perform("sign", params, true)
     }
 
-    signAndSendTransaction = async ({tx, meta}) => {
+    signAndSendTransaction = async ({tx, meta, target, config}) => {
         const params = {
             tx,
             meta,
+            target,
+            config,
         }
         return await this.perform("signAndSend", params, true)
     }

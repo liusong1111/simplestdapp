@@ -79,6 +79,7 @@
         utf8ToBytes,
         bytesToHex,
         hexToUtf8,
+        scriptToHash,
     } from "@nervosnetwork/ckb-sdk-utils";
     // import CKB from "@nervosnetwork/ckb-sdk-core";
     // import { RpcService } from "./services";
@@ -88,11 +89,12 @@
         name: 'App',
         data: function () {
             return {
-                privateKey: "",
+                privateKey: "ebb14eeac1cedbaafc8af65d7ea0aa5042b8f8a88fc056b3e71e2c2975a0bd8a",
                 publicKey: "",
                 address: "",
                 toLock: undefined,
                 lockArg: undefined,
+                lockHash: undefined,
                 cells: [],
                 emptyCells: [],
                 filledCells: [],
@@ -120,12 +122,14 @@
                     prefix: "ckt"
                 })
                 this.lockArg = `0x${blake160(this.publicKey, 'hex')}`
+
                 this.toLock = {
                     // SECP256K1_BLAKE160_SIGHASH_ALL_TYPE_HASH, fixed
                     codeHash: "0x9bd7e06f3ecf4be0f2fcd2188b23f1b9fcc88e5d4b65a8637b17723bbda3cce8",
                     hashType: "type",
                     args: this.lockArg,
                 }
+                this.lockHash = scriptToHash(this.toLock);
                 try {
                     this.cells = await this.getCells(this.lockArg)
                 } catch (e) {
@@ -311,7 +315,7 @@
                 //     console.log("sendTransaction error:", e)
                 //     alert("error:", e)
                 // }
-                const signedTx = await this.service.signAndSendTransaction({tx: rawTx, meta: "hello"})
+                const signedTx = await this.service.signAndSendTransaction({tx: rawTx, meta: "hello", target: {lockHash: this.lockHash}})
                 alert("Tx has been broadcasted, please refresh later. Typical block interval is 8~30s")
                 this.loading = false
                 this.showModel = false
