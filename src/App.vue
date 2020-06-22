@@ -316,6 +316,7 @@
                 //     alert("error:", e)
                 // }
                 const signedTx = await this.service.signAndSendTransaction({tx: rawTx, meta: "hello", target: {lockHash: this.lockHash}})
+                console.log("signedTx:", signedTx)
                 alert("Tx has been broadcasted, please refresh later. Typical block interval is 8~30s")
                 this.loading = false
                 this.showModel = false
