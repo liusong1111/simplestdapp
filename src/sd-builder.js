@@ -69,7 +69,7 @@ export default class SDBuilder extends Builder {
     const outputCells = [changeCell];
     if (this.outputCell) outputCells.unshift(this.outputCell);
 
-    const tx = new Transaction(new RawTransaction(inputCells, outputCells));
+    const tx = new Transaction(new RawTransaction(inputCells, outputCells), [Builder.WITNESS_ARGS.Secp256k1]);
 
     this.fee = Builder.calcFee(tx);
 
