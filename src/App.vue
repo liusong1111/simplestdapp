@@ -130,6 +130,7 @@
                     args: this.lockArg,
                 }
                 this.lockHash = scriptToHash(this.toLock);
+                console.log("scriptHash:", this.lockHash);
                 try {
                     this.cells = await this.getCells(this.lockArg)
                 } catch (e) {

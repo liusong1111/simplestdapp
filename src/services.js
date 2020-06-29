@@ -19,8 +19,9 @@ export class KeyperingService {
     constructor(wsUrl) {
         this.ws = new WebSocket(wsUrl);
         this.ws.onmessage = this.onWsMessage;
-        this.token = null
         this.promises = {}
+        const authToken = window.localStorage.getItem("authToken");
+        this.token = authToken;
     }
 
     onWsMessage = (msg) => {
@@ -35,6 +36,7 @@ export class KeyperingService {
             const {token} = result
             console.log(`token = ${token}`)
             this.token = token
+            window.localStorage.setItem("authToken", token);
         }
         this.resolvePromise(id, result)
     }
@@ -99,7 +101,7 @@ export class KeyperingService {
             const token = this.token
             if (!token) {
                 alert("Please click getAuth first")
-                return
+                throw "NoAuthError"
             } else {
                 params.token = token
             }
