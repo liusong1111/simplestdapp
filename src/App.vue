@@ -146,8 +146,8 @@
             },
             getAuth: async function () {
                 const result = await this.service.requestAuth({
-                    origin: "http://hello.com",
-                    description: "hello"
+                    origin: window.location.origin,
+                    description: "a simplest dApp"
                 })
                 console.log("getAuth result:" + result)
             },
