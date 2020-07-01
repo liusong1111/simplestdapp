@@ -46,6 +46,7 @@
                     </div>
                 </div>
             </div>
+
             <div id="model" :class="{hidden: !this.showModel}">
                 <div class="model-content">
                     <h3>Input Data Content</h3>
@@ -158,7 +159,7 @@
             },
             editCell: function (cell) {
                 this.showModel = true
-                this.editData = this.hexToText(cell.output_data)
+                this.editData = this.hexToText(cell.outputData)
                 this.mode = "update"
                 this.currentCell = cell;
             },
@@ -269,7 +270,7 @@
                 let emptyCells = [];
                 let filledCells = [];
                 for (let cell of cells) {
-                    if (cell.output_data === "0x") {
+                    if (cell.outputData === "0x") {
                         emptyCells.push(cell)
                     } else {
                         filledCells.push(cell)
@@ -288,7 +289,7 @@
                     const _capacity = parseInt(cell.output.capacity)
                     capacity += _capacity
 
-                    if (cell.output_data === "0x") {
+                    if (cell.outputData === "0x") {
                         free += _capacity
                     } else {
                         inuse += _capacity
