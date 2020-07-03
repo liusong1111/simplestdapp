@@ -250,7 +250,7 @@
             getCells: async function() {
                 this.loading = true
                 try {
-                    const liveCells = await window.ckb.getLiveCells()
+                    const liveCells = await window.ckb.getLiveCells({limit: '10', hasData: 'true'})
 
                     if (liveCells.success) {
                         const cells = liveCells.data
