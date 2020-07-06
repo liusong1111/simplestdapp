@@ -3,20 +3,20 @@
         <div id="appContent">
             <h1>Simplest dApp on CKB <a href="https://github.com/liusong1111/simplestdapp" target="_blank">(Source
                 Code)</a></h1>
+            <div class="row">
+                <button @click.prevent="getAuth()">getAuth</button>
+                &nbsp;&nbsp;&nbsp;&nbsp;
+                <button @click.prevent="reload()">Reload{{loading && "ing.." || ""}}</button>
+            </div>
             <form>
                 <fieldset>
-                    <div class="row">
-                        <label for="private_key">
-                            Please input test private key:
-                        </label>
-                        <input id="private_key" v-model="privateKey"/> &nbsp;
-                        <button @click.prevent="reload">Confirm</button>
-                    </div>
                     <div class="row">
                         <label for="address">
                             Your testnet address:
                         </label>
-                        <input id="address" disabled :value="address"/>
+                        <select v-model="address" @change="reload()">
+                            <option v-for="address in addresses" :value="address">{{address.address}}</option>
+                        </select>
                     </div>
                     <div class="row">
                         <label for="balance">
@@ -30,16 +30,15 @@
             <div class="cells">
                 <h3>Data cell list
                     &nbsp;<button @click.prevent="newCell()">Create Cell</button>
-                    &nbsp;<button @click.prevent="reload()">Refresh{{loading && "ing.." || ""}}</button>
-                    &nbsp;<button @click.prevent="getAuth()">getAuth</button>
+                    &nbsp;
                 </h3>
                 <div v-if="!filledCells" class="no-data">
                     No Data Cells
                 </div>
                 <div>
-                    <div class="cell" v-for="cell in filledCells" :key="cell.out_point.tx_hash + cell.out_point.index">
+                    <div class="cell" v-for="cell in filledCells" :key="cell.created_by.block_number + cell.created_by.tx_hash + cell.created_by.index">
                         <div class="cell-header">
-                            Capacity: {{formatCkb(cell.output.capacity)}}
+                            Capacity: {{formatCkb(cell.cell_output.capacity)}}
                             <div class="cell-ops">
                                 <a href="#" @click.prevent="deleteCell(cell)">Delete</a>
                                 &nbsp;&nbsp;<a href="#" @click.prevent="editCell(cell)">Update</a>
@@ -47,7 +46,7 @@
                         </div>
                         <div class="cell-body">
                             Data:
-                            {{hexToText(cell.output_data)}}
+                            {{hexToText(cell.data.content)}}
                         </div>
                     </div>
                 </div>
@@ -73,24 +72,17 @@
     import * as BN from "bn.js";
     import {
         hexToBytes,
-        privateKeyToPublicKey,
-        pubkeyToAddress,
-        blake160,
         utf8ToBytes,
         bytesToHex,
         hexToUtf8,
-        scriptToHash,
     } from "@nervosnetwork/ckb-sdk-utils";
-    // import CKB from "@nervosnetwork/ckb-sdk-core";
-    // import { RpcService } from "./services";
     import {KeyperingService} from "./services";
 
     export default {
         name: 'App',
         data: function () {
             return {
-                privateKey: "ebb14eeac1cedbaafc8af65d7ea0aa5042b8f8a88fc056b3e71e2c2975a0bd8a",
-                publicKey: "",
+                addresses: [],
                 address: "",
                 toLock: undefined,
                 lockArg: undefined,
@@ -111,28 +103,34 @@
             }
         },
         components: {},
+        async mounted() {
+            this.service = new KeyperingService("ws://localhost:3012")
+        },
         methods: {
             reload: async function () {
-                this.loading = true
-                // this.service = new RpcService(`0x${this.privateKey}`);
-                this.service = new KeyperingService("ws://localhost:3012");
-                this.publicKey = privateKeyToPublicKey(`0x${this.privateKey}`)
-                this.address = pubkeyToAddress(this.publicKey, {
-                    // "ckb" for mainnet, "ckt" for testnet
-                    prefix: "ckt"
-                })
-                this.lockArg = `0x${blake160(this.publicKey, 'hex')}`
-
-                this.toLock = {
-                    // SECP256K1_BLAKE160_SIGHASH_ALL_TYPE_HASH, fixed
-                    codeHash: "0x9bd7e06f3ecf4be0f2fcd2188b23f1b9fcc88e5d4b65a8637b17723bbda3cce8",
-                    hashType: "type",
-                    args: this.lockArg,
-                }
-                this.lockHash = scriptToHash(this.toLock);
-                console.log("scriptHash:", this.lockHash);
+                let authToken;
                 try {
-                    this.cells = await this.getCells(this.lockArg)
+                    authToken = window.localStorage.getItem("authToken")
+                } catch(e) {
+                    console.log("error:", e)
+                }
+
+                if (!authToken) {
+                    console.log("no token")
+                    return;
+                }
+                this.loading = true
+                this.addresses = await this.service.queryAddresses({})
+                if(!this.address && this.addresses.length > 0) {
+                    this.address = this.addresses[0]
+                }
+                console.log("current address:", this.address)
+                this.lockArg = this.address.meta.script.args
+                this.lockHash = this.address.hash
+                this.toLock = this.address.meta.script
+                try {
+                    this.cells = await this.service.queryLiveCells(this.lockHash)
+                    console.log("cells:", this.cells)
                 } catch (e) {
                     alert("error:" + e)
                     console.log(e)
@@ -173,7 +171,7 @@
             },
             editCell: function (cell) {
                 this.showModel = true
-                this.editData = this.hexToText(cell.output_data)
+                this.editData = this.hexToText(cell.data.content)
                 this.mode = "update"
                 this.currentCell = cell;
             },
@@ -250,6 +248,7 @@
                     capacity = capacity.add(new BN("6100000000"))
 
                     // add Transaction Fee
+                    // todo: calculate a good value
                     total = capacity.add(new BN("10000000"))
 
                     rawTx.outputs.push({
@@ -270,13 +269,13 @@
                 for (let cell of cells) {
                     rawTx.inputs.push({
                         previousOutput: {
-                            txHash: cell.out_point.tx_hash,
-                            index: cell.out_point.index,
+                            txHash: cell.created_by.tx_hash,
+                            index: cell.created_by.index,
                         },
                         since: "0x0",
                     })
                     rawTx.witnesses.push("0x")
-                    let cellCapacity = new BN(parseInt(cell.output.capacity))
+                    let cellCapacity = new BN(cell.cell_output.capacity.replace("0x", ""), 16)
                     inputCapacity = inputCapacity.add(cellCapacity)
                     if (inputCapacity.gt(total)) {
                         if (inputCapacity.sub(total).gt(new BN("6100000000"))) {
@@ -325,132 +324,11 @@
                     this.reload()
                 }, 1000)
             },
-            getCells: async function (lockArg) {
-                let a = 2;
-                // for test only
-                if (a === 1) {
-                    let response =
-                        {
-                            "jsonrpc": "2.0",
-                            "result": {
-                                "last_cursor": "0x409bd7e06f3ecf4be0f2fcd2188b23f1b9fcc88e5d4b65a8637b17723bbda3cce80114000000705ca2e725e9b26e6abb842ed2043ea80197dfd7000000000000300e0000000100000001",
-                                "objects": [
-                                    {
-                                        "block_number": "0x2f62",
-                                        "out_point": {
-                                            "index": "0x0",
-                                            "tx_hash": "0x2d6e2f573be0527baa28cd2fc1d36ffeabd6a9fc9145f9aed1b26a11bd794bcd"
-                                        },
-                                        "output": {
-                                            "capacity": "0x177825f00",
-                                            "lock": {
-                                                "args": "0x705ca2e725e9b26e6abb842ed2043ea80197dfd7",
-                                                "code_hash": "0x9bd7e06f3ecf4be0f2fcd2188b23f1b9fcc88e5d4b65a8637b17723bbda3cce8",
-                                                "hash_type": "type"
-                                            },
-                                            "type": null
-                                        },
-                                        "output_data": "0xc3d4",
-                                        "tx_index": "0x1"
-                                    },
-                                    {
-                                        "block_number": "0x300e",
-                                        "out_point": {
-                                            "index": "0x0",
-                                            "tx_hash": "0x501f0f0bb8715fc4fa1ad46485775cc67855908a718265bce8926fd602b3c756"
-                                        },
-                                        "output": {
-                                            "capacity": "0x1836e2100",
-                                            "lock": {
-                                                "args": "0x705ca2e725e9b26e6abb842ed2043ea80197dfd7",
-                                                "code_hash": "0x9bd7e06f3ecf4be0f2fcd2188b23f1b9fcc88e5d4b65a8637b17723bbda3cce8",
-                                                "hash_type": "type"
-                                            },
-                                            "type": null
-                                        },
-                                        "output_data": "0x12345678",
-                                        "tx_index": "0x1"
-                                    },
-                                    {
-                                        "block_number": "0x300e",
-                                        "out_point": {
-                                            "index": "0x1",
-                                            "tx_hash": "0x501f0f0bb8715fc4fa1ad46485775cc67855908a718265bce8926fd602b3c756"
-                                        },
-                                        "output": {
-                                            "capacity": "0x716f61f090",
-                                            "lock": {
-                                                "args": "0x705ca2e725e9b26e6abb842ed2043ea80197dfd7",
-                                                "code_hash": "0x9bd7e06f3ecf4be0f2fcd2188b23f1b9fcc88e5d4b65a8637b17723bbda3cce8",
-                                                "hash_type": "type"
-                                            },
-                                            "type": null
-                                        },
-                                        "output_data": "0x",
-                                        "tx_index": "0x1"
-                                    }
-                                ]
-                            },
-                            "id": 2
-                        }
-                    return response.result.objects;
-                }
-                this.loading = true
-                let payload = {
-                    "id": 2,
-                    "jsonrpc": "2.0",
-                    "method": "get_cells",
-                    "params": [
-                        {
-                            "script": {
-                                "code_hash": "0x9bd7e06f3ecf4be0f2fcd2188b23f1b9fcc88e5d4b65a8637b17723bbda3cce8",
-                                "hash_type": "type",
-                                "args": lockArg,
-                            },
-                            "script_type": "lock"
-                        },
-                        "asc",
-                        // "0x6"
-                        // "0x64"
-                        "0x2710"
-                    ]
-                }
-                const body = JSON.stringify(payload, null, "  ")
-                console.log("get_cells request:", body)
-                // let url = "http://localhost:8117/indexer"
-                let url = "https://prototype.ckbapp.dev/testnet/indexer"
-                try {
-                    let res = await fetch(url, {
-                        method: "POST",
-                        body,
-                        cache: "no-store",
-                        headers: {
-                            // "Accept": "application/json",
-                            "Content-Type": "application/json",
-                            // "Content-Type": "text/plain",
-                            // "Origin": "http://localhost:8080",
-                            // "Access-Control-Allow-Origin": "*",
-                            // "Access-Control-Request-Method": "POST",
-                            // "Access-Control-Request-Headers": "content-type"
-                        },
-                        mode: "cors",
-                    })
-                    // res = await res.text()
-                    res = await res.json()
-                    // res = await res.text()
-                    console.log("get_cells response:", res)
-                    return res.result.objects
-                } catch (e) {
-                    console.log("error:", e)
-                    alert("error:" + e)
-                }
-                this.loading = false
-            },
             groupCells: function (cells) {
                 let emptyCells = [];
                 let filledCells = [];
                 for (let cell of cells) {
-                    if (cell.output_data === "0x") {
+                    if (cell.output_data_len === "0x0") {
                         emptyCells.push(cell)
                     } else {
                         filledCells.push(cell)
@@ -462,17 +340,17 @@
                 }
             },
             getSummary: function (cells) {
-                let capacity = 0
-                let inuse = 0
-                let free = 0
+                let capacity = new BN(0)
+                let inuse = new BN(0)
+                let free = new BN(0)
                 for (let cell of cells) {
-                    const _capacity = parseInt(cell.output.capacity)
-                    capacity += _capacity
+                    const _capacity = new BN(cell.cell_output.capacity.replace("0x", ""), 16)
+                    capacity.iadd(_capacity)
 
-                    if (cell.output_data === "0x") {
-                        free += _capacity
+                    if (cell.output_data_len === "0x0") {
+                        free.iadd(_capacity)
                     } else {
-                        inuse += _capacity
+                        inuse.iadd(_capacity)
                     }
                 }
                 return {

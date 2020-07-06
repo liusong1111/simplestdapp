@@ -76,6 +76,19 @@ export class KeyperingService {
         return await this.perform("auth", params, false)
     }
 
+    queryAddresses = async (params) => {
+        const result = await this.perform("query_addresses", params, true)
+        return result.addresses
+    }
+
+    queryLiveCells = async (lockHash) => {
+        const params = {
+            lockHash,
+        }
+        const result = await this.perform("query_live_cells", params, true)
+        return result.liveCells
+    }
+
     signTransaction = async ({tx, meta, target, config}) => {
         const params = {
             tx,
