@@ -15,7 +15,7 @@
                             Your testnet address:
                         </label>
                         <select v-model="address" @change="reload()">
-                            <option v-for="address in addresses" :value="address">{{address.address}}</option>
+                            <option v-for="address in addresses" :value="address" :key="address.address">{{address.address}}</option>
                         </select>
                     </div>
                     <div class="row">
