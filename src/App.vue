@@ -334,18 +334,20 @@
                 //     console.log("sendTransaction error:", e)
                 //     alert("error:", e)
                 // }
-                const signedTx = await this.service.signAndSendTransaction({
-                    tx: rawTx,
-                    meta: "hello",
-                    target: {lockHash: this.lockHash}
-                })
-                console.log("signedTx:", signedTx)
-                alert("Tx has been broadcasted, please refresh later. Typical block interval is 8~30s")
+                let signedTx;
+                try {
+                    signedTx = await this.service.signAndSendTransaction({
+                        tx: rawTx,
+                        meta: "hello",
+                        target: {lockHash: this.lockHash}
+                    })
+                    console.log("signedTx:", signedTx)
+                    alert("Tx has been broadcasted, please refresh later. Typical block interval is 8~30s")
+                } catch(e) {
+                    alert(`error occurs, code=${e.code}, message=${e.message}`)
+                }
                 this.loading = false
                 this.showModel = false
-                setTimeout(() => {
-                    this.reload()
-                }, 1000)
             },
             groupCells: function (cells) {
                 let emptyCells = [];
