@@ -36,15 +36,15 @@ export class KeyperingService {
         this.resolveFn();
     };
 
-    onWsError = (error) => {
-        this.rejectFn(error);
+    onWsError = () => {
+        this.rejectFn({code: -1, message: "establish_connection_error"});
     };
 
     onWsMessage = (msg) => {
         const payload = JSON.parse(msg.data)
         const {id, error, result} = payload
         if (error) {
-            alert(`error: code=${payload.error.code}, message=${payload.error.message}`)
+            // alert(`error: code=${payload.error.code}, message=${payload.error.message}`)
             this.rejectPromise(id, error)
             return
         }

@@ -15,7 +15,9 @@
                             Your testnet address:
                         </label>
                         <select v-model="address" @change="reload()">
-                            <option v-for="address in addresses" :value="address" :key="address.address">{{address.address}}</option>
+                            <option v-for="address in addresses" :value="address" :key="address.address">
+                                {{address.address}}
+                            </option>
                         </select>
                     </div>
                     <div class="row">
@@ -36,7 +38,8 @@
                     No Data Cells
                 </div>
                 <div>
-                    <div class="cell" v-for="cell in filledCells" :key="cell.created_by.block_number + cell.created_by.tx_hash + cell.created_by.index">
+                    <div class="cell" v-for="cell in filledCells"
+                         :key="cell.created_by.block_number + cell.created_by.tx_hash + cell.created_by.index">
                         <div class="cell-header">
                             Capacity: {{formatCkb(cell.cell_output.capacity)}}
                             <div class="cell-ops">
@@ -107,7 +110,7 @@
             this.service = new KeyperingService("ws://localhost:3012")
             try {
                 await this.service.ready;
-            } catch(e) {
+            } catch (e) {
                 alert("Keypering service(ws://localhost:3012) is not available")
                 return
             }
@@ -122,8 +125,15 @@
                     return;
                 }
                 this.loading = true
-                this.addresses = await this.service.queryAddresses({})
-                if(!this.address && this.addresses.length > 0) {
+                try {
+                    this.addresses = await this.service.queryAddresses({})
+                } catch(e) {
+                    alert(`error occurs, code=${e.code}, message=${e.message}`)
+                    console.log(e)
+                    this.loading = false
+                    return
+                }
+                if (!this.address && this.addresses.length > 0) {
                     this.address = this.addresses[0]
                 }
                 console.log("current address:", this.address)
@@ -134,8 +144,9 @@
                     this.cells = await this.service.queryLiveCells(this.lockHash)
                     console.log("cells:", this.cells)
                 } catch (e) {
-                    alert("error:" + e)
+                    alert(`error occurs, code=${e.code}, message=${e.message}`)
                     console.log(e)
+                    return
                 }
                 this.loading = false
                 this.summary = this.getSummary(this.cells)
@@ -145,11 +156,17 @@
                 this.filledCells = filledCells
             },
             getAuth: async function () {
-                const result = await this.service.requestAuth({
-                    origin: window.location.origin,
-                    description: "a simplest dApp"
-                })
-                console.log("getAuth result:" + result)
+                let result;
+                try {
+                    result = await this.service.requestAuth({
+                        origin: window.location.origin,
+                        description: "a simplest dApp"
+                    })
+                    await this.reload()
+                } catch(e) {
+                    console.log("getAuth result:" + result)
+                    alert(`error occurs, code=${e.code}, message=${e.message}`)
+                }
             },
             formatCkb: function (c) {
                 if (typeof (c) === "undefined") {
@@ -317,7 +334,11 @@
                 //     console.log("sendTransaction error:", e)
                 //     alert("error:", e)
                 // }
-                const signedTx = await this.service.signAndSendTransaction({tx: rawTx, meta: "hello", target: {lockHash: this.lockHash}})
+                const signedTx = await this.service.signAndSendTransaction({
+                    tx: rawTx,
+                    meta: "hello",
+                    target: {lockHash: this.lockHash}
+                })
                 console.log("signedTx:", signedTx)
                 alert("Tx has been broadcasted, please refresh later. Typical block interval is 8~30s")
                 this.loading = false
