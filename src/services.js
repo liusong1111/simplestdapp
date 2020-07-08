@@ -19,10 +19,26 @@ export class KeyperingService {
     constructor(wsUrl) {
         this.ws = new WebSocket(wsUrl);
         this.ws.onmessage = this.onWsMessage;
+        this.ws.onopen = this.onWsOpen;
+        this.ws.onerror = this.onWsError;
         this.promises = {}
         const authToken = window.localStorage.getItem("authToken");
         this.token = authToken;
+        this.resolveFn = null;
+        this.rejectFn = null;
+        this.ready = new Promise((resolve, reject) => {
+            this.resolveFn = resolve;
+            this.rejectFn = reject;
+        });
     }
+
+    onWsOpen = () => {
+        this.resolveFn();
+    };
+
+    onWsError = (error) => {
+        this.rejectFn(error);
+    };
 
     onWsMessage = (msg) => {
         const payload = JSON.parse(msg.data)
@@ -127,6 +143,7 @@ export class KeyperingService {
             method,
             params,
         }
+        await this.ready;
         this.ws.send(JSON.stringify(payload))
         const promise = this.addPromise(id)
         return await promise

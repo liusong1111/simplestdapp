@@ -105,15 +105,17 @@
         components: {},
         async mounted() {
             this.service = new KeyperingService("ws://localhost:3012")
+            try {
+                await this.service.ready;
+            } catch(e) {
+                alert("Keypering service(ws://localhost:3012) is not available")
+                return
+            }
+            await this.reload()
         },
         methods: {
             reload: async function () {
-                let authToken;
-                try {
-                    authToken = window.localStorage.getItem("authToken")
-                } catch(e) {
-                    console.log("error:", e)
-                }
+                let authToken = window.localStorage.getItem("authToken")
 
                 if (!authToken) {
                     console.log("no token")
