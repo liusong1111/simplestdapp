@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@nervosnetwork/ckb-sdk-core": "^0.31.0",
+    "@nervosnetwork/ckb-types": "^0.31.0",
     "@nervosnetwork/ckb-sdk-utils": "^0.31.0",
     "bn.js": "^5.1.2",
     "vue": "^2.6.11"
