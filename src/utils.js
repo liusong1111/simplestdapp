@@ -65,6 +65,78 @@ export function createRawTx(fromLockScript, toLockScript, toAmount,
   return rawTx;
 }
 
+
+export function updateDataRawTx(fromLockScript, inputOutPoint, dataCellCapacity, newDataCapacity, unspentCells, deps, fee, newDataHex, ) {
+
+  const rawTx = {
+      version: '0x0',
+      cellDeps: deps,
+      headerDeps: [],
+      inputs: [],
+      outputs: [],
+      witnesses: [],
+      outputsData: [],
+  };
+
+  function getTotalCapity(total, cell) {
+    return new BN(total).add( new BN(cell.capacity.slice(2), 16))
+  }
+
+  const unspentTotalCapacity = unspentCells.reduce(getTotalCapity, 0);
+
+  rawTx.inputs.push({
+      previousOutput: inputOutPoint,
+      since: '0x0',
+  });
+
+  rawTx.witnesses.push('0x');
+  rawTx.witnesses[0] = {
+      lock: '',
+      inputType: '',
+      outputType: '',
+  };
+
+  for (const cell of unspentCells) {
+
+      rawTx.inputs.push({
+          previousOutput: cell.outPoint,
+          since: '0x0',
+      })
+      rawTx.witnesses.push('0x');
+  }
+
+  if (newDataHex === '0x') {
+      const unspentCapacity = unspentTotalCapacity.add(dataCellCapacity).sub(fee)
+
+      rawTx.outputs.push({
+          capacity: `0x${unspentCapacity.toString(16)}`,
+          lock: fromLockScript,
+      });
+
+      rawTx.outputsData.push('0x');
+
+  } else {
+      const newDataCellCapacity = newDataCapacity.add(new BN(61 * oneCkb))
+
+      rawTx.outputs.push({
+          capacity: `0x${newDataCellCapacity.toString(16)}`,
+          lock: fromLockScript,
+      });
+
+      rawTx.outputsData.push(newDataHex);
+      const unspentCapacity = unspentTotalCapacity.add(dataCellCapacity).sub(newDataCellCapacity).sub(fee)
+
+      rawTx.outputs.push({
+          capacity: `0x${unspentCapacity.toString(16)}`,
+          lock: fromLockScript,
+      });
+
+      rawTx.outputsData.push('0x');
+  }
+
+  return rawTx;
+}
+
 export function addressToScript(address, systemCodeHash) {
 
   if (systemCodeHash === void 0) {// undefined

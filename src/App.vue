@@ -75,7 +75,7 @@
         hexToUtf8,
     } from "@nervosnetwork/ckb-sdk-utils";
 
-    import {createRawTx, addressToScript, oneCkb} from "./utils.js";
+    import {createRawTx, updateDataRawTx, addressToScript, oneCkb} from "./utils.js";
 
     const secp256k1Dep = {
     outPoint: {
@@ -281,6 +281,31 @@
                         tx: rawTx
                     })
 
+                    console.log('txResult: ', txResult)
+                }
+
+                // update cell
+                if (this.mode === "update") {
+                    let newDataCapacity = new BN(byteLength * oneCkb)
+                    const currCell = this.currentCell
+                    const _dataCellByteLength = hexToBytes(currCell.outputData).byteLength
+                    const dataCellCapacity = new BN(_dataCellByteLength * oneCkb)
+                    const upCellRawTx = updateDataRawTx(
+                        addressToScript(this.address), // fromLockScript
+                        currCell.outPoint, // inputOutPoint
+                        dataCellCapacity,
+                        newDataCapacity, // newDataCapacity
+                        this.emptyCells, // unspentCells
+                        [secp256k1Dep], // deps
+                        fee, // fee
+                        this.textToHex(this.editData), // newDataHex
+                    )
+
+                    if (!window.ckb) return;
+
+                    const txResult = await window.ckb.signSend({
+                        tx: upCellRawTx
+                    })
                     console.log('txResult: ', txResult)
                 }
 
