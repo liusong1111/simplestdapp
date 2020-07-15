@@ -259,13 +259,14 @@
                 const editData = this.textToHex(this.editData)
                 let bytes = hexToBytes(editData)
                 let byteLength = bytes.byteLength
-                let _capacity = new BN(byteLength * oneCkb)
 
                 const fee = new BN(oneCkb * 0.0001)
                 // create cell
                 if (this.mode === "create") {
+                    let _capacity = new BN(byteLength * oneCkb)
                     const costCapacity = _capacity.add(new BN(61 * oneCkb))
                     const inputCells = this.emptyCells
+
                     const rawTx = createRawTx(
                         addressToScript(this.address), //fromLockScript
                         addressToScript(this.address), // toLockScript
@@ -288,12 +289,15 @@
                 if (this.mode === "update") {
                     let newDataCapacity = new BN(byteLength * oneCkb)
                     const currCell = this.currentCell
+
+                    // dataCellCapacity == cell.capcity
                     const _dataCellByteLength = hexToBytes(currCell.outputData).byteLength
-                    const dataCellCapacity = new BN(_dataCellByteLength * oneCkb)
+                    const oldDataCapacity = new BN(_dataCellByteLength * oneCkb)
+
                     const upCellRawTx = updateDataRawTx(
                         addressToScript(this.address), // fromLockScript
                         currCell.outPoint, // inputOutPoint
-                        dataCellCapacity,
+                        oldDataCapacity,
                         newDataCapacity, // newDataCapacity
                         this.emptyCells, // unspentCells
                         [secp256k1Dep], // deps

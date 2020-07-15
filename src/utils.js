@@ -66,7 +66,7 @@ export function createRawTx(fromLockScript, toLockScript, toAmount,
 }
 
 
-export function updateDataRawTx(fromLockScript, inputOutPoint, dataCellCapacity, newDataCapacity, unspentCells, deps, fee, newDataHex, ) {
+export function updateDataRawTx(fromLockScript, inputOutPoint, oldDataCapacity, newDataCapacity, unspentCells, deps, fee, newDataHex, ) {
 
   const rawTx = {
       version: '0x0',
@@ -105,8 +105,8 @@ export function updateDataRawTx(fromLockScript, inputOutPoint, dataCellCapacity,
       rawTx.witnesses.push('0x');
   }
 
-  if (newDataHex === '0x') {
-      const unspentCapacity = unspentTotalCapacity.add(dataCellCapacity).sub(fee)
+  if (newDataHex === '0x') { // delete cell
+      const unspentCapacity = unspentTotalCapacity.add(oldDataCapacity).sub(fee).add(new BN(61 * oneCkb))
 
       rawTx.outputs.push({
           capacity: `0x${unspentCapacity.toString(16)}`,
@@ -124,7 +124,7 @@ export function updateDataRawTx(fromLockScript, inputOutPoint, dataCellCapacity,
       });
 
       rawTx.outputsData.push(newDataHex);
-      const unspentCapacity = unspentTotalCapacity.add(dataCellCapacity).sub(newDataCellCapacity).sub(fee)
+      const unspentCapacity = unspentTotalCapacity.add(oldDataCapacity).add(new BN(61 * oneCkb)).sub(newDataCellCapacity).sub(fee)
 
       rawTx.outputs.push({
           capacity: `0x${unspentCapacity.toString(16)}`,
