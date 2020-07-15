@@ -74,7 +74,16 @@
         bytesToHex,
         hexToUtf8,
     } from "@nervosnetwork/ckb-sdk-utils";
-    // import CKB from "@nervosnetwork/ckb-sdk-core";
+
+    import {createRawTx, addressToScript, oneCkb} from "./utils.js";
+
+    const secp256k1Dep = {
+    outPoint: {
+        txHash: '0xf8de3bb47d055cdf460d93a2a6e1b05f7432f9777c8c474abf4eec1d4aee5d37',
+        index: '0x0',
+    },
+    depType: 'depGroup',
+    };
 
     export default {
         name: 'App',
@@ -132,6 +141,7 @@
                 this.loading = false
                 // this.summary = this.getSummary(this.cells)
                 console.log("summary:", this.summary)
+
                 const {emptyCells, filledCells} = this.groupCells(this.cells)
                 this.emptyCells = emptyCells
                 this.filledCells = filledCells
@@ -222,25 +232,33 @@
                 }
                 return result
             },
-            opCell: async function () {
-
+            opCell: async function() {
                 const editData = this.textToHex(this.editData)
                 let bytes = hexToBytes(editData)
                 let byteLength = bytes.byteLength
-                let capacity = new BN(byteLength)
-                // State Rent
-                capacity = capacity.add(new BN("61"))
-                const txRequestObj = {
-                    from: this.address,
-                    to: this.address,
-                    capacity: capacity.toString(),
-                    data: editData
+                let _capacity = new BN(byteLength * oneCkb)
+
+                // create cell
+                if (this.mode === "create") {
+                    const costCapacity = _capacity.add(new BN(61 * oneCkb))
+                    const inputCells = this.emptyCells
+                    const rawTx = createRawTx(
+                        addressToScript(this.address), //fromLockScript
+                        addressToScript(this.address), // toLockScript
+                        costCapacity,
+                        inputCells,
+                        [secp256k1Dep],
+                        new BN(oneCkb), // fee
+                        editData, // toDataHex
+                    )
+
+                    if (!window.ckb) return;
+                    const txResult = await window.ckb.signSend({
+                        tx: rawTx
+                    })
+
+                    console.log('txResult: ', txResult)
                 }
-                if (!window.ckb) return;
-                const txResult = await window.ckb.send({
-                    meta: txRequestObj
-                })
-                console.log('txResult: ', txResult)
 
                 this.loading = false
                 this.showModel = false
@@ -260,6 +278,7 @@
             groupCells: function (cells) {
                 let emptyCells = [];
                 let filledCells = [];
+
                 for (let cell of cells) {
                     if (cell.outputData === "0x") {
                         emptyCells.push(cell)
