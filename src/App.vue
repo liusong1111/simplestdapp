@@ -175,14 +175,37 @@
             submitModel: function () {
                 this.opCell()
             },
-            deleteCell: function (cell) {
+            deleteCell: async function(cell) {
                 if (!confirm("Are you sure to delete this cell?")) {
                     return
                 }
-                this.editData = ""
+
+                this.editData = "0x"
                 this.mode = "delete"
                 this.currentCell = cell
-                this.opCell()
+                const fee = new BN(oneCkb * 0.0001)
+                const oldCapacity = new BN(cell.capacity.slice(2), 16)
+                const recallCapacity = oldCapacity.sub(fee)
+                const inputCells = [this.currentCell]
+
+                const rawTx = createRawTx(
+                    addressToScript(this.address), // toLockScript
+                    addressToScript(this.address), //fromLockScript
+                    recallCapacity,
+                    inputCells,
+                    [secp256k1Dep],
+                    fee, this.editData, // toDataHex
+                );
+
+                if (!window.ckb) return;
+                const txResult = await window.ckb.signSend({
+                    tx: rawTx
+                })
+
+                console.log('txResult: ', txResult)
+                this.loading = false
+                this.showModel = false
+                this.reload()
             },
             getRawTxTemplate: function () {
                 return {
@@ -238,6 +261,7 @@
                 let byteLength = bytes.byteLength
                 let _capacity = new BN(byteLength * oneCkb)
 
+                const fee = new BN(oneCkb * 0.0001)
                 // create cell
                 if (this.mode === "create") {
                     const costCapacity = _capacity.add(new BN(61 * oneCkb))
@@ -248,7 +272,7 @@
                         costCapacity,
                         inputCells,
                         [secp256k1Dep],
-                        new BN(oneCkb), // fee
+                        fee,
                         editData, // toDataHex
                     )
 

@@ -4,7 +4,9 @@ import * as bech32 from "bech32";
 
 export const oneCkb = 10 ** 8
 
-export function createRawTx(fromLockScript, toLockScript, toAmount, inputCells, deps, fee, toDataHex, ) {
+export function createRawTx(fromLockScript, toLockScript, toAmount,
+  inputCells, deps, fee, toDataHex, ) {
+
   const rawTx = {
     version: '0x0',
     cellDeps: deps,
