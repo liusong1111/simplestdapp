@@ -126,7 +126,8 @@
                 }
                 this.loading = true
                 try {
-                    this.addresses = (await this.service.queryAddresses()).addresses
+                    let result = await this.service?.queryAddresses()
+                    this.addresses = result.addresses
                 } catch(e) {
                     alert(`error occurs, code=${e.code}, message=${e.message}`)
                     console.log(e)
@@ -320,6 +321,7 @@
                 }
                 //sign
                 this.loading = true
+                alert("prepare to broadcast the transaction")
                 let signedTx;
                 try {
                     signedTx = await this.service.signSendTransaction(
