@@ -12,7 +12,9 @@
     "@nervosnetwork/ckb-types": "^0.31.0",
     "@nervosnetwork/ckb-sdk-utils": "^0.31.0",
     "bn.js": "^5.1.2",
-    "vue": "^2.6.11"
+    "vue": "^2.6.11",
+    "@keypering/specs": "../keypering-core/packages/specs/lib",
+    "@keypering/client": "../keypering-core/packages/client/lib"
   },
   "devDependencies": {
     "@vue/cli-plugin-babel": "^4.3.0",

@@ -11,12 +11,12 @@
             <form>
                 <fieldset>
                     <div class="row">
-                        <label for="address">
+                        <label>
                             Your testnet address:
                         </label>
                         <select v-model="address" @change="reload()">
                             <option v-for="address in addresses" :value="address" :key="address.address">
-                                {{address.address}}
+                                {{address.lockScriptMeta.name}} - {{address.address}}
                             </option>
                         </select>
                     </div>
@@ -39,9 +39,9 @@
                 </div>
                 <div>
                     <div class="cell" v-for="cell in filledCells"
-                         :key="cell.created_by.block_number + cell.created_by.tx_hash + cell.created_by.index">
+                         :key="cell.createdBy.blockNumber + cell.createdBy.txHash + cell.createdBy.index">
                         <div class="cell-header">
-                            Capacity: {{formatCkb(cell.cell_output.capacity)}}
+                            Capacity: {{formatCkb(cell.cellOutput.capacity)}}
                             <div class="cell-ops">
                                 <a href="#" @click.prevent="deleteCell(cell)">Delete</a>
                                 &nbsp;&nbsp;<a href="#" @click.prevent="editCell(cell)">Update</a>
@@ -79,7 +79,7 @@
         bytesToHex,
         hexToUtf8,
     } from "@nervosnetwork/ckb-sdk-utils";
-    import {KeyperingService} from "./services";
+    import KeyperingClient from "@keypering/client";
 
     export default {
         name: 'App',
@@ -107,7 +107,7 @@
         },
         components: {},
         async mounted() {
-            this.service = new KeyperingService("ws://localhost:3012")
+            this.service = new KeyperingClient("ws://localhost:3012")
             try {
                 await this.service.ready;
             } catch (e) {
@@ -126,7 +126,7 @@
                 }
                 this.loading = true
                 try {
-                    this.addresses = await this.service.queryAddresses({})
+                    this.addresses = (await this.service.queryAddresses()).addresses
                 } catch(e) {
                     alert(`error occurs, code=${e.code}, message=${e.message}`)
                     console.log(e)
@@ -137,11 +137,11 @@
                     this.address = this.addresses[0]
                 }
                 console.log("current address:", this.address)
-                this.lockArg = this.address.meta.script.args
-                this.lockHash = this.address.hash
-                this.toLock = this.address.meta.script
+                this.lockArg = this.address.lockScript.args
+                this.lockHash = this.address.lockHash
+                this.toLock = this.address.lockScript
                 try {
-                    this.cells = await this.service.queryLiveCells(this.lockHash)
+                    this.cells = await this.service.queryLiveCells(this.lockHash, true)
                     console.log("cells:", this.cells)
                 } catch (e) {
                     alert(`error occurs, code=${e.code}, message=${e.message}`)
@@ -159,7 +159,7 @@
                 let result;
                 try {
                     result = await this.service.requestAuth({
-                        origin: window.location.origin,
+                        url: window.location.origin,
                         description: "a simplest dApp"
                     })
                     await this.reload()
@@ -288,13 +288,13 @@
                 for (let cell of cells) {
                     rawTx.inputs.push({
                         previousOutput: {
-                            txHash: cell.created_by.tx_hash,
-                            index: cell.created_by.index,
+                            txHash: cell.createdBy.txHash,
+                            index: cell.createdBy.index,
                         },
                         since: "0x0",
                     })
                     rawTx.witnesses.push("0x")
-                    let cellCapacity = new BN(cell.cell_output.capacity.replace("0x", ""), 16)
+                    let cellCapacity = new BN(cell.cellOutput.capacity.replace("0x", ""), 16)
                     inputCapacity = inputCapacity.add(cellCapacity)
                     if (inputCapacity.gt(total)) {
                         if (inputCapacity.sub(total).gt(new BN("6100000000"))) {
@@ -319,28 +319,14 @@
                     outputType: "",
                 }
                 //sign
-                // const ckb = new CKB("https://prototype.ckbapp.dev/testnet/rpc")
-                // const signedTx = ckb.signTransaction(`0x${this.privateKey}`)(rawTx)
                 this.loading = true
-                // const signedTx = await this.service.signTransaction(rawTx, "hello")
-                // console.log("signedTx:", JSON.stringify(signedTx, null, "  "))
-                // try {
-                //     // await ckb.rpc.sendTransaction(signedTx)
-                //     await this.service?.sendTransaction(signedTx)
-                //     setTimeout(() => {
-                //         alert("Tx has been broadcasted, please refresh later. Typical block interval is 8~30s")
-                //     }, 0)
-                // } catch (e) {
-                //     console.log("sendTransaction error:", e)
-                //     alert("error:", e)
-                // }
                 let signedTx;
                 try {
-                    signedTx = await this.service.signAndSendTransaction({
-                        tx: rawTx,
-                        meta: "hello",
-                        target: {lockHash: this.lockHash}
-                    })
+                    signedTx = await this.service.signSendTransaction(
+                        "transaction description",
+                        rawTx,
+                        this.lockHash
+                    );
                     console.log("signedTx:", signedTx)
                     alert("Tx has been broadcasted, please refresh later. Typical block interval is 8~30s")
                 } catch(e) {
@@ -353,7 +339,7 @@
                 let emptyCells = [];
                 let filledCells = [];
                 for (let cell of cells) {
-                    if (cell.output_data_len === "0x0") {
+                    if (cell.outputDataLen === "0x0") {
                         emptyCells.push(cell)
                     } else {
                         filledCells.push(cell)
@@ -369,10 +355,10 @@
                 let inuse = new BN(0)
                 let free = new BN(0)
                 for (let cell of cells) {
-                    const _capacity = new BN(cell.cell_output.capacity.replace("0x", ""), 16)
+                    const _capacity = new BN(cell.cellOutput.capacity.replace("0x", ""), 16)
                     capacity.iadd(_capacity)
 
-                    if (cell.output_data_len === "0x0") {
+                    if (cell.outputDataLen === "0x0") {
                         free.iadd(_capacity)
                     } else {
                         inuse.iadd(_capacity)
