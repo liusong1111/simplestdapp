@@ -142,7 +142,7 @@
                 this.lockHash = this.address.lockHash
                 this.toLock = this.address.lockScript
                 try {
-                    this.cells = await this.service.queryLiveCells(this.lockHash, true)
+                    this.cells = await this.service?.queryLiveCells(this.lockHash, true)
                     console.log("cells:", this.cells)
                 } catch (e) {
                     alert(`error occurs, code=${e.code}, message=${e.message}`)
@@ -159,7 +159,7 @@
             getAuth: async function () {
                 let result;
                 try {
-                    result = await this.service.requestAuth({
+                    result = await this.service?.requestAuth({
                         url: window.location.origin,
                         description: "a simplest dApp"
                     })
@@ -324,7 +324,7 @@
                 alert("prepare to broadcast the transaction")
                 let signedTx;
                 try {
-                    signedTx = await this.service.signSendTransaction(
+                    signedTx = await this.service?.signSendTransaction(
                         "transaction description",
                         rawTx,
                         this.lockHash
