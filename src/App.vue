@@ -67,7 +67,7 @@
             ></textarea>
           </div>
           <div>
-            <button @click.prevent="this.showModel = false">Cancel</button>
+            <button @click.prevent="closeModal()">Cancel</button>
             <button @click.prevent="opCell()" style="float:right">Confirm</button>
           </div>
         </div>
@@ -148,6 +148,9 @@ export default {
       this.mode = "delete";
       this.currentCell = cell;
       this.opCell();
+    },
+    closeModal: function () {
+      this.showModel = false;
     },
     opCell: async function () {
       let inputCell, outputCell;
