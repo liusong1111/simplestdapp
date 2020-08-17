@@ -25,8 +25,12 @@
             <input id="address" disabled :value="address" />
           </div>
           <div class="row">
-            <label for="balance">Testnet balance:</label>
-            <input id="balance" :value="formatCkb(summary.free)" disabled /> &nbsp;
+            <label for="balance">Capacity:</label>
+            <input
+              id="balance"
+              :value="`free: ${formatCkb(summary.free)} | used: ${formatCkb(summary.inuse)} | total: ${formatCkb(summary.capacity)}`"
+              disabled
+            /> &nbsp;
           </div>
         </fieldset>
       </form>
