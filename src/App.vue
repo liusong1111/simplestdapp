@@ -67,8 +67,8 @@
             ></textarea>
           </div>
           <div>
-            <button @click.prevent="cancelModel()">Cancel</button>
-            <button @click.prevent="submitModel()" style="float:right">Confirm</button>
+            <button @click.prevent="this.showModel = false">Cancel</button>
+            <button @click.prevent="opCell()" style="float:right">Confirm</button>
           </div>
         </div>
       </div>
@@ -79,19 +79,17 @@
 <script>
 import PWCore, {
   EthProvider,
-  ChainID,
-  CHAIN_SPECS,
   Amount,
   AmountUnit,
   Cell,
-  EthSigner
+  EthSigner,
 } from "@lay2/pw-core";
 import SDCollector from "./sd-collector";
 import SDBuilder from "./sd-builder";
 
 export default {
   name: "App",
-  data: function() {
+  data: function () {
     return {
       pw: {},
       builder: {},
@@ -102,62 +100,47 @@ export default {
       summary: {
         inuse: new Amount("0"),
         free: new Amount("0"),
-        capacity: new Amount("0")
+        capacity: new Amount("0"),
       },
       showModel: false,
       mode: undefined,
       editData: "",
-      loading: false
+      loading: false,
     };
   },
   components: {},
   async mounted() {
-    this.pw = await new PWCore("https://lay2.ckb.dev").init(
+    this.pw = await new PWCore("https://aggron.ckb.dev").init(
       new EthProvider(),
-      new SDCollector(),
-      ChainID.ckb_dev,
-      CHAIN_SPECS.Lay2
+      new SDCollector()
     );
 
     this.address = PWCore.provider.address.toCKBAddress();
 
-    // this.timer = setInterval(this.reload, 5000);
     this.reload();
   },
-  beforeDestroy() {
-    // this.timer && clearInterval(this.timer);
-  },
   methods: {
-    reload: async function() {
+    reload: async function () {
       this.loading = true;
-
       this.summary = await this.getSummary();
-      console.log("summary:", this.summary);
-
       this.loading = false;
     },
-    formatCkb: function(c) {
+    formatCkb: function (c) {
       return c ? c.toString(AmountUnit.ckb, { commify: true }) + " CKB" : "-";
     },
-    cancelModel: function() {
-      this.showModel = false;
-    },
-    newCell: function() {
+    newCell: function () {
       this.showModel = true;
       this.editData = "";
       this.mode = "create";
       this.currentCell = null;
     },
-    editCell: function(cell) {
+    editCell: function (cell) {
       this.showModel = true;
       this.editData = cell.getData();
       this.mode = "update";
       this.currentCell = cell;
     },
-    submitModel: function() {
-      this.opCell();
-    },
-    deleteCell: function(cell) {
+    deleteCell: function (cell) {
       if (!confirm("Are you sure to delete this cell?")) {
         return;
       }
@@ -166,7 +149,7 @@ export default {
       this.currentCell = cell;
       this.opCell();
     },
-    opCell: async function() {
+    opCell: async function () {
       let inputCell, outputCell;
 
       if (this.mode === "delete" || this.mode === "update") {
@@ -192,9 +175,8 @@ export default {
         const builder = new SDBuilder(inputCell, outputCell);
         const signer = new EthSigner(PWCore.provider.address.addressString);
         const txHash = await this.pw.sendTransaction(builder, signer);
-        console.log(
-          "tx sent: ",
-          "https://explorer.ckb.pw/devnet/transaction" + txHash
+        confirm(
+          "tx sent: https://explorer.nervos.org/aggron/transaction/" + txHash
         );
       } catch (e) {
         this.loading = false;
@@ -206,39 +188,37 @@ export default {
       this.showModel = false;
     },
 
-    getSummary: async function() {
+    getSummary: async function () {
       const capacity = await PWCore.defaultCollector.getBalance(
         PWCore.provider.address
       );
       this.filledCells = await PWCore.defaultCollector.collect(
         PWCore.provider.address,
-        null,
         { withData: true }
       );
       this.emptyCells = await PWCore.defaultCollector.collect(
         PWCore.provider.address,
-        null,
         { withData: false }
       );
 
       const inuse = this.filledCells.length
         ? this.filledCells
-            .map(c => c.capacity)
+            .map((c) => c.capacity)
             .reduce((sum, cap) => sum.add(cap))
-        : new Amount("0");
+        : Amount.ZERO;
       const free = this.emptyCells.length
         ? this.emptyCells
-            .map(c => c.capacity)
+            .map((c) => c.capacity)
             .reduce((sum, cap) => sum.add(cap))
-        : new Amount("0");
+        : Amount.ZERO;
 
       return {
         capacity,
         inuse,
-        free
+        free,
       };
-    }
-  }
+    },
+  },
 };
 </script>
 

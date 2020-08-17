@@ -5,11 +5,10 @@ import {
   Script,
   OutPoint,
   AmountUnit,
-} from '@lay2/pw-core';
+} from "@lay2/pw-core";
 
 export default class SDCollector extends Collector {
-  // indexerUrl = "https://prototype.ckbapp.dev/testnet/indexer";
-  indexerUrl = "https://lay2.ckb.dev/indexer";
+  indexerUrl = "https://prototype.ckbapp.dev/testnet/indexer";
 
   getParams(address) {
     return {
@@ -46,8 +45,6 @@ export default class SDCollector extends Collector {
       })
     ).json();
 
-    console.log("[sd-collector] res", res);
-
     const rawCells = res.result.objects;
 
     for (let rawCell of rawCells) {
@@ -66,13 +63,13 @@ export default class SDCollector extends Collector {
 
   async getBalance(address) {
     const cells = await this.getCells(address);
-    if (!cells.length) return new Amount("0");
+    if (!cells.length) return Amount.ZERO;
     return cells
       .map((c) => c.capacity)
       .reduce((sum, cap) => (sum = sum.add(cap)));
   }
 
-  async collect(address, neededAmount, { withData }) {
+  async collect(address, { withData }) {
     const cells = await this.getCells(address);
 
     if (withData) {
