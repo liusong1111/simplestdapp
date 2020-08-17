@@ -28,11 +28,17 @@ export default class SDBuilder extends Builder {
 
     if (!this.inputCell) {
       // if no inputCell provided, we need to get all the capacity from unspent cells
-      neededAmount = this.outputCell.capacity;
+      neededAmount = !neededAmount
+        ? this.outputCell.capacity
+        : neededAmount.add(this.outputCell.capacity);
     } else if (this.outputCell) {
       if (this.inputCell.capacity.lt(this.outputCell.capacity)) {
         // if new cell is bigger than the old one, we need extra input cells
-        neededAmount = this.outputCell.capacity.sub(this.inputCell.capacity);
+        neededAmount = !neededAmount
+          ? this.outputCell.capacity
+          : neededAmount.add(
+              this.outputCell.capacity.sub(this.inputCell.capacity)
+            );
       }
     }
 
