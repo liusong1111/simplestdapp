@@ -68,7 +68,7 @@
     import {
         hexToBytes,
         // privateKeyToPublicKey,
-        // pubkeyToAddress,
+        pubkeyToAddress,
         blake160,
         utf8ToBytes,
         bytesToHex,
@@ -116,7 +116,8 @@
                 const { data: addressInfo } = window.ckb && await window.ckb.getAddressInfo();
                 if (!addressInfo) return;
                 console.log('addressInfo: ', addressInfo)
-                const { publicKey, address, capacity } = addressInfo
+                const { publicKey, capacity } = addressInfo
+                const address = pubkeyToAddress(hexToBytes(publicKey));
                 this.publicKey = publicKey
                 this.address = address
                 this.summary = {
@@ -319,7 +320,7 @@
             },
             getCells: async function () {
                 try {
-                    let res = await window.ckb.getLiveCells({limit: 20})
+                    let res = await window.ckb.getLiveCells({limit: 20,typeHash: 'isNull'})
                     console.log("get_cells response:", res)
                     return res.data
                 } catch (e) {
