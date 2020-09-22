@@ -995,10 +995,10 @@
     cssnano-preset-default "^4.0.0"
     postcss "^7.0.0"
 
-"@lay2/pw-core@^0.3.9":
-  version "0.3.9"
-  resolved "https://registry.yarnpkg.com/@lay2/pw-core/-/pw-core-0.3.9.tgz#d921ff5bbb91394b219d5b89d0fd962821547800"
-  integrity sha512-K+Fw+rA7QTCm7g7DMo9p7K2j7+g8B5S9k7naHiJhXAjWNdhI2aTOgkfh713cCVXfs7t5Y06VtG1KclQfVkTbWg==
+"@lay2/pw-core@^0.3.11":
+  version "0.3.11"
+  resolved "https://registry.yarnpkg.com/@lay2/pw-core/-/pw-core-0.3.11.tgz#ac24a903bb140875a111917b099370b852978027"
+  integrity sha512-b/OH+Z4EhS6G0KEw11iDVENd4F1BDMRV9ff/r7utYu4k2mZUgF6733tNxqcnBIHs9XveTfaRHGVtG1Lu16zBkg==
   dependencies:
     "@ckb-lumos/types" "^0.2.4"
     "@nervosnetwork/ckb-sdk-utils" "^0.32.0"
