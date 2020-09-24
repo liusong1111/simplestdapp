@@ -3,13 +3,12 @@
   "version": "0.1.1",
   "private": true,
   "scripts": {
-    "serve": "npm run pwcore && vue-cli-service serve",
-    "build": "npm run pwcore && vue-cli-service build",
-    "lint": "vue-cli-service lint",
-    "pwcore": "cd node_modules/@lay2/pw-core && npm i && npm run build"
+    "serve": "vue-cli-service serve",
+    "build": "vue-cli-service build",
+    "lint": "vue-cli-service lint"
   },
   "dependencies": {
-    "@lay2/pw-core": "git+https://github.com/lay2dev/pw-core.git#feature_walletconnect",
+    "@lay2/pw-core": "^0.3.12",
     "@walletconnect/web3-provider": "^1.2.2",
     "vue": "^2.6.11",
     "web3modal": "^1.9.0"
