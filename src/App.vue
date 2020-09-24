@@ -108,6 +108,7 @@ import Web3Modal from "web3modal";
 import WalletConnectProvider from "@walletconnect/web3-provider";
 import supportedChains from "./chains";
 import Torus from "@toruslabs/torus-embed";
+import Web3 from "web3";
 
 export default {
   name: "App",
@@ -198,8 +199,15 @@ export default {
     },
     connect: async function() {
       const provider = await this.web3Modal.connect();
+
+      const web3 = new Web3(provider);
+
+      // const accounts = await web3.eth.getAccounts();
+
+      // console.log("accounts", accounts);
+
       this.pw = await new PWCore("https://aggron.ckb.dev").init(
-        new Web3ModalProvider(provider),
+        new Web3ModalProvider(web3),
         new SDCollector()
       );
 
