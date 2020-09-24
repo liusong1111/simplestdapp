@@ -107,6 +107,7 @@ import SDBuilder from "./sd-builder";
 import Web3Modal from "web3modal";
 import WalletConnectProvider from "@walletconnect/web3-provider";
 import supportedChains from "./chains";
+import Torus from "@toruslabs/torus-embed";
 
 export default {
   name: "App",
@@ -188,6 +189,9 @@ export default {
             // infuraId: process.env.REACT_APP_INFURA_ID
             infuraId: "89a648e271d54224ba4827d348cbaa54",
           },
+        },
+        torus: {
+          package: Torus,
         },
       };
       return providerOptions;
