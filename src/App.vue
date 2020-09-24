@@ -4,20 +4,26 @@
       <h1>
         Simplest dApp on CKB
         <a href="https://github.com/lay2dev/simplestdapp" target="_blank">
-          (Source
-          Code)
+          (Source Code)
         </a>
       </h1>
       <center>
         <h4>
           Forked from
-          <a
-            href="https://github.com/liusong1111/simplestdapp"
-            target="_blank"
-          >liusong's work</a> with
-          <a href="https://www.npmjs.com/package/@lay2/pw-core" target="_blank">pw-core</a> adopted
+          <a href="https://github.com/liusong1111/simplestdapp" target="_blank"
+            >liusong's work</a
+          >
+          with
+          <a href="https://www.npmjs.com/package/@lay2/pw-core" target="_blank"
+            >pw-core</a
+          >
+          adopted
         </h4>
       </center>
+
+      <button v-if="!address" @click.prevent="connect()">wallet connect</button>
+      <button v-if="address" @click.prevent="disconnect()">disconnect</button>
+
       <form>
         <fieldset>
           <div class="row">
@@ -28,19 +34,25 @@
             <label for="balance">Capacity:</label>
             <input
               id="balance"
-              :value="`free: ${formatCkb(summary.free)} | used: ${formatCkb(summary.inuse)} | total: ${formatCkb(summary.capacity)}`"
+              :value="
+                `free: ${formatCkb(summary.free)} | used: ${formatCkb(
+                  summary.inuse
+                )} | total: ${formatCkb(summary.capacity)}`
+              "
               disabled
-            /> &nbsp;
+            />
+            &nbsp;
           </div>
         </fieldset>
       </form>
       <div class="cells">
         <h3>
-          Data cell list
-          &nbsp;
+          Data cell list &nbsp;
           <button @click.prevent="newCell()">Create Cell</button>
           &nbsp;
-          <button @click.prevent="reload()">Refresh{{loading && "ing.." || ""}}</button>
+          <button @click.prevent="reload()">
+            Refresh{{ (loading && "ing..") || "" }}
+          </button>
         </h3>
         <div v-if="!filledCells" class="no-data">No Data Cells</div>
         <div>
@@ -50,18 +62,18 @@
             :key="cell.outPoint.txHash + cell.outPoint.index"
           >
             <div class="cell-header">
-              Capacity: {{formatCkb(cell.capacity)}}
+              Capacity: {{ formatCkb(cell.capacity) }}
               <div class="cell-ops">
                 <a href="#" @click.prevent="deleteCell(cell)">Delete</a>
                 &nbsp;&nbsp;
                 <a href="#" @click.prevent="editCell(cell)">Update</a>
               </div>
             </div>
-            <div class="cell-body">Data: {{cell.getData()}}</div>
+            <div class="cell-body">Data: {{ cell.getData() }}</div>
           </div>
         </div>
       </div>
-      <div id="model" :class="{hidden: !this.showModel}">
+      <div id="model" :class="{ hidden: !this.showModel }">
         <div class="model-content">
           <h3>Input Data Content</h3>
           <div>
@@ -72,7 +84,9 @@
           </div>
           <div>
             <button @click.prevent="closeModal()">Cancel</button>
-            <button @click.prevent="opCell()" style="float:right">Confirm</button>
+            <button @click.prevent="opCell()" style="float:right">
+              Confirm
+            </button>
           </div>
         </div>
       </div>
@@ -82,20 +96,26 @@
 
 <script>
 import PWCore, {
-  EthProvider,
+  Web3ModalProvider,
   Amount,
   AmountUnit,
   Cell,
-  EthSigner,
+  // EthSigner,
 } from "@lay2/pw-core";
 import SDCollector from "./sd-collector";
 import SDBuilder from "./sd-builder";
+import Web3Modal from "web3modal";
+import WalletConnectProvider from "@walletconnect/web3-provider";
+import supportedChains from "./chains";
+import Torus from "@toruslabs/torus-embed";
 
 export default {
   name: "App",
-  data: function () {
+  data: function() {
     return {
       pw: {},
+      web3Modal: null,
+      chainId: 1,
       builder: {},
       address: "",
       cells: [],
@@ -114,37 +134,113 @@ export default {
   },
   components: {},
   async mounted() {
-    this.pw = await new PWCore("https://aggron.ckb.dev").init(
-      new EthProvider(),
-      new SDCollector()
-    );
+    this.web3Modal = new Web3Modal({
+      network: this.getNetwork(),
+      cacheProvider: true,
+      providerOptions: this.getProviderOptions(),
+    });
 
-    this.address = PWCore.provider.address.toCKBAddress();
-
-    this.reload();
+    if (this.web3Modal.cachedProvider) {
+      this.connect();
+    }
   },
   methods: {
-    reload: async function () {
+    reload: async function() {
       this.loading = true;
       this.summary = await this.getSummary();
       this.loading = false;
     },
-    formatCkb: function (c) {
+    formatCkb: function(c) {
       return c ? c.toString(AmountUnit.ckb, { commify: true }) + " CKB" : "-";
     },
-    newCell: function () {
+    getNetwork: function() {
+      return this.getChainData(this.chainId).network;
+    },
+    getChainData: function(chainId) {
+      const chainData = supportedChains.filter(
+        (chain) => chain.chain_id === chainId
+      )[0];
+
+      if (!chainData) {
+        throw new Error("ChainId missing or not supported");
+      }
+      // const API_KEY = process.env.REACT_APP_INFURA_ID;
+      const API_KEY = "89a648e271d54224ba4827d348cbaa54";
+      if (
+        chainData.rpc_url.includes("infura.io") &&
+        chainData.rpc_url.includes("%API_KEY%") &&
+        API_KEY
+      ) {
+        const rpcUrl = chainData.rpc_url.replace("%API_KEY%", API_KEY);
+        return {
+          ...chainData,
+          rpc_url: rpcUrl,
+        };
+      }
+
+      return chainData;
+    },
+
+    getProviderOptions: function() {
+      const providerOptions = {
+        walletconnect: {
+          package: WalletConnectProvider,
+          options: {
+            // infuraId: process.env.REACT_APP_INFURA_ID
+            infuraId: "89a648e271d54224ba4827d348cbaa54",
+          },
+        },
+        torus: {
+          package: Torus,
+        },
+      };
+      return providerOptions;
+    },
+    connect: async function() {
+      const provider = await this.web3Modal.connect();
+      this.pw = await new PWCore("https://aggron.ckb.dev").init(
+        new Web3ModalProvider(provider),
+        new SDCollector()
+      );
+
+      this.address = PWCore.provider.address.toCKBAddress();
+      console.log("ETH address", PWCore.provider.address.addressString);
+
+      this.reload();
+    },
+    disconnect: async function() {
+      await PWCore.provider.close();
+      await this.web3Modal.clearCachedProvider();
+
+      this.pw = {};
+      // web3Modal: null,
+      (this.chainId = 1), (this.builder = {});
+      this.address = "";
+      this.cells = [];
+      this.emptyCells = [];
+      this.filledCells = [];
+      this.summary = {
+        inuse: new Amount("0"),
+        free: new Amount("0"),
+        capacity: new Amount("0"),
+      };
+      this.showModel = false;
+      this.mode = undefined;
+      (this.editData = ""), (this.loading = false);
+    },
+    newCell: function() {
       this.showModel = true;
       this.editData = "";
       this.mode = "create";
       this.currentCell = null;
     },
-    editCell: function (cell) {
+    editCell: function(cell) {
       this.showModel = true;
       this.editData = cell.getData();
       this.mode = "update";
       this.currentCell = cell;
     },
-    deleteCell: function (cell) {
+    deleteCell: function(cell) {
       if (!confirm("Are you sure to delete this cell?")) {
         return;
       }
@@ -153,10 +249,10 @@ export default {
       this.currentCell = cell;
       this.opCell();
     },
-    closeModal: function () {
+    closeModal: function() {
       this.showModel = false;
     },
-    opCell: async function () {
+    opCell: async function() {
       let inputCell, outputCell;
 
       if (this.mode === "delete" || this.mode === "update") {
@@ -180,8 +276,9 @@ export default {
       try {
         this.loading = true;
         const builder = new SDBuilder(inputCell, outputCell);
-        const signer = new EthSigner(PWCore.provider.address.addressString);
-        const txHash = await this.pw.sendTransaction(builder, signer);
+        // const signer = new EthSigner(PWCore.provider.address.addressString);
+        // const txHash = await this.pw.sendTransaction(builder, signer);
+        const txHash = await this.pw.sendTransaction(builder);
         confirm(
           "tx sent: https://explorer.nervos.org/aggron/transaction/" + txHash
         );
@@ -195,7 +292,7 @@ export default {
       this.showModel = false;
     },
 
-    getSummary: async function () {
+    getSummary: async function() {
       const capacity = await PWCore.defaultCollector.getBalance(
         PWCore.provider.address
       );
