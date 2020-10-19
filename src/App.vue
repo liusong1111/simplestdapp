@@ -68,7 +68,6 @@
     import {
         hexToBytes,
         // privateKeyToPublicKey,
-        pubkeyToAddress,
         blake160,
         utf8ToBytes,
         bytesToHex,
@@ -116,8 +115,7 @@
                 const { data: addressInfo } = window.ckb && await window.ckb.getAddressInfo();
                 if (!addressInfo) return;
                 console.log('addressInfo: ', addressInfo)
-                const { publicKey, capacity } = addressInfo
-                const address = pubkeyToAddress(hexToBytes(publicKey));
+                const { publicKey, capacity, address } = addressInfo
                 this.publicKey = publicKey
                 this.address = address
                 this.summary = {
