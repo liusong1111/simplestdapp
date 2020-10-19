@@ -275,6 +275,7 @@
                         fee,
                         editData, // toDataHex
                     )
+                    console.log('rawTx: ', rawTx)
 
                     if (!window.ckb) return;
                     const txResult = await window.ckb.signSend({
@@ -305,6 +306,7 @@
                     )
 
                     if (!window.ckb) return;
+                    console.log('upCellRawTx: ', upCellRawTx)
 
                     const txResult = await window.ckb.signSend({
                         tx: upCellRawTx
@@ -318,7 +320,7 @@
             },
             getCells: async function () {
                 try {
-                    let res = await window.ckb.getLiveCells({limit: 20,typeHash: 'isNull'})
+                    let res = await window.ckb.getLiveCells({ limit: 50 })
                     console.log("get_cells response:", res)
                     return res.data
                 } catch (e) {
@@ -330,8 +332,9 @@
             groupCells: function (cells) {
                 let emptyCells = [];
                 let filledCells = [];
-
-                for (let cell of cells) {
+                const nonSudtCells = cells.filter(cell => !cell.typeHash);
+                console.log('nonSudtCells: ', nonSudtCells)
+                for (let cell of nonSudtCells) {
                     if (cell.outputData === "0x") {
                         emptyCells.push(cell)
                     } else {
