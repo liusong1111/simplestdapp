@@ -329,7 +329,7 @@
                 }
                 this.loading = false
             },
-            groupCells: function (cells) {
+            groupCells: function (cells = []) {
                 let emptyCells = [];
                 let filledCells = [];
                 const nonSudtCells = cells.filter(cell => !cell.typeHash);
