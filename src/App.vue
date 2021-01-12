@@ -41,7 +41,7 @@
                         </div>
                         <div class="cell-body">
                             Data:
-                            {{hexToText(cell.outputData)}}
+                            {{cell.outputData}}
                         </div>
                     </div>
                 </div>
