@@ -41,7 +41,7 @@
                         </div>
                         <div class="cell-body">
                             Data:
-                            {{cell.outputData}}
+                            {{hexToText(cell.outputData)}}
                         </div>
                     </div>
                 </div>
@@ -124,7 +124,6 @@
                     capacity,
                 }
                 this.lockArg = `0x${blake160(this.publicKey, 'hex')}`
-                console.log('this.lockArg: ', this.lockArg)
                 this.toLock = {
                     // SECP256K1_BLAKE160_SIGHASH_ALL_TYPE_HASH, fixed
                     codeHash: "0x9bd7e06f3ecf4be0f2fcd2188b23f1b9fcc88e5d4b65a8637b17723bbda3cce8",
@@ -167,7 +166,7 @@
             },
             editCell: function (cell) {
                 this.showModel = true
-                this.editData = this.hexToText(cell.outputData)
+                this.editData = ""
                 this.mode = "update"
                 this.currentCell = cell;
             },
