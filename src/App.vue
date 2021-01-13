@@ -1,22 +1,17 @@
 <template>
     <div id="app">
         <div id="appContent">
-            <h1>Simplest dApp on CKB <a href="https://github.com/liusong1111/simplestdapp" target="_blank">(Source
-                Code)</a></h1>
+            <h1>Simplest dApp on CKB <a href="https://github.com/rebase-network/simplestdapp" target="_blank">(Source Code)</a> </h1>
+            <p>The code is forked from <a href="https://github.com/liusong1111/simplestdapp" target="_blank">liusong1111/simplestdapp</a></p>
+            <p>Please download latest version of <a href="https://github.com/rebase-network/synapse-extension/releases/" target="_blank">Synapse extension</a> before you use this dapp</p>
             <form>
                 <fieldset>
-                    <div class="row">
-                        <label for="private_key">
-                            Please input test private key:
-                        </label>
-                        <input id="private_key" v-model="privateKey"/> &nbsp;
-                        <button @click.prevent="reload">Confirm</button>
-                    </div>
                     <div class="row">
                         <label for="address">
                             Your testnet address:
                         </label>
                         <input id="address" disabled :value="address"/>
+                        <button @click.prevent="reload">Get Info</button>
                     </div>
                     <div class="row">
                         <label for="balance">
@@ -36,9 +31,9 @@
                     No Data Cells
                 </div>
                 <div>
-                    <div class="cell" v-for="cell in filledCells" :key="cell.out_point.tx_hash + cell.out_point.index">
+                    <div class="cell" v-for="cell in filledCells" :key="cell.outPoint.txHash + cell.outPoint.index">
                         <div class="cell-header">
-                            Capacity: {{formatCkb(cell.output.capacity)}}
+                            Capacity: {{formatCkb(cell.capacity)}}
                             <div class="cell-ops">
                                 <a href="#" @click.prevent="deleteCell(cell)">Delete</a>
                                 &nbsp;&nbsp;<a href="#" @click.prevent="editCell(cell)">Update</a>
@@ -46,7 +41,7 @@
                         </div>
                         <div class="cell-body">
                             Data:
-                            {{hexToText(cell.output_data)}}
+                            {{hexToText(cell.outputData)}}
                         </div>
                     </div>
                 </div>
@@ -72,14 +67,22 @@
     import * as BN from "bn.js";
     import {
         hexToBytes,
-        privateKeyToPublicKey,
-        pubkeyToAddress,
+        // privateKeyToPublicKey,
         blake160,
         utf8ToBytes,
         bytesToHex,
         hexToUtf8,
     } from "@nervosnetwork/ckb-sdk-utils";
-    import CKB from "@nervosnetwork/ckb-sdk-core";
+
+    import {createRawTx, updateDataRawTx, addressToScript, oneCkb} from "./utils.js";
+
+    const secp256k1Dep = {
+    outPoint: {
+        txHash: '0xf8de3bb47d055cdf460d93a2a6e1b05f7432f9777c8c474abf4eec1d4aee5d37',
+        index: '0x0',
+    },
+    depType: 'depGroup',
+    };
 
     export default {
         name: 'App',
@@ -108,11 +111,18 @@
         methods: {
             reload: async function () {
                 this.loading = true
-                this.publicKey = privateKeyToPublicKey(`0x${this.privateKey}`)
-                this.address = pubkeyToAddress(this.publicKey, {
-                    // "ckb" for mainnet, "ckt" for testnet
-                    prefix: "ckt"
-                })
+                console.log('reload')
+                const { data: addressInfo } = window.ckb && await window.ckb.getAddressInfo();
+                if (!addressInfo) return;
+                console.log('addressInfo: ', addressInfo)
+                const { publicKey, capacity, address } = addressInfo
+                this.publicKey = publicKey
+                this.address = address
+                this.summary = {
+                    inuse: 0,
+                    free: capacity,
+                    capacity,
+                }
                 this.lockArg = `0x${blake160(this.publicKey, 'hex')}`
                 this.toLock = {
                     // SECP256K1_BLAKE160_SIGHASH_ALL_TYPE_HASH, fixed
@@ -121,14 +131,15 @@
                     args: this.lockArg,
                 }
                 try {
-                    this.cells = await this.getCells(this.lockArg)
+                    this.cells = await this.getCells()
                 } catch (e) {
-                    alert("error:" + e)
+                    console.log("error:" + e)
                     console.log(e)
                 }
                 this.loading = false
-                this.summary = this.getSummary(this.cells)
+                // this.summary = this.getSummary(this.cells)
                 console.log("summary:", this.summary)
+
                 const {emptyCells, filledCells} = this.groupCells(this.cells)
                 this.emptyCells = emptyCells
                 this.filledCells = filledCells
@@ -155,21 +166,44 @@
             },
             editCell: function (cell) {
                 this.showModel = true
-                this.editData = this.hexToText(cell.output_data)
+                this.editData = ""
                 this.mode = "update"
                 this.currentCell = cell;
             },
             submitModel: function () {
                 this.opCell()
             },
-            deleteCell: function (cell) {
+            deleteCell: async function(cell) {
                 if (!confirm("Are you sure to delete this cell?")) {
                     return
                 }
-                this.editData = ""
+
+                this.editData = "0x"
                 this.mode = "delete"
                 this.currentCell = cell
-                this.opCell()
+                const fee = new BN(oneCkb * 0.0001)
+                const oldCapacity = new BN(cell.capacity.slice(2), 16)
+                const recallCapacity = oldCapacity.sub(fee)
+                const inputCells = [this.currentCell]
+
+                const rawTx = createRawTx(
+                    addressToScript(this.address), // toLockScript
+                    addressToScript(this.address), //fromLockScript
+                    recallCapacity,
+                    inputCells,
+                    [secp256k1Dep],
+                    fee, this.editData, // toDataHex
+                );
+
+                if (!window.ckb) return;
+                const txResult = await window.ckb.signSend({
+                    tx: rawTx
+                })
+
+                console.log('txResult: ', txResult)
+                this.loading = false
+                this.showModel = false
+                this.reload()
             },
             getRawTxTemplate: function () {
                 return {
@@ -219,215 +253,88 @@
                 }
                 return result
             },
-            opCell: async function () {
-                const rawTx = this.getRawTxTemplate()
-                let total = new BN(0)
+            opCell: async function() {
+                const editData = this.textToHex(this.editData)
+                let bytes = hexToBytes(editData)
+                let byteLength = bytes.byteLength
 
-                if (this.mode === "create" || this.mode === "update") {
-                    const editData = this.textToHex(this.editData)
-                    let bytes = hexToBytes(editData)
-                    let byteLength = bytes.byteLength
-                    let capacity = new BN(byteLength * 100000000)
-                    // State Rent
-                    capacity = capacity.add(new BN("6100000000"))
+                const fee = new BN(oneCkb * 0.0001)
+                // create cell
+                if (this.mode === "create") {
+                    let _capacity = new BN(byteLength * oneCkb)
+                    const costCapacity = _capacity.add(new BN(61 * oneCkb))
+                    const inputCells = this.emptyCells
 
-                    // add Transaction Fee
-                    total = capacity.add(new BN("10000000"))
+                    const rawTx = createRawTx(
+                        addressToScript(this.address), //fromLockScript
+                        addressToScript(this.address), // toLockScript
+                        costCapacity,
+                        inputCells,
+                        [secp256k1Dep],
+                        fee,
+                        editData, // toDataHex
+                    )
+                    console.log('rawTx: ', rawTx)
 
-                    rawTx.outputs.push({
-                        capacity: `0x${capacity.toString(16)}`,
-                        lock: this.toLock,
+                    if (!window.ckb) return;
+                    const txResult = await window.ckb.signSend({
+                        tx: rawTx
                     })
-                    rawTx.outputsData.push(editData)
-                } else {
-                    total = new BN("10000000")
+
+                    console.log('txResult: ', txResult)
                 }
 
-                let cells = this.emptyCells;
-                let inputCapacity = new BN(0);
-                let ok = false
-                if (this.mode === "update" || this.mode === "delete") {
-                    cells = [this.currentCell, ...cells]
-                }
-                for (let cell of cells) {
-                    rawTx.inputs.push({
-                        previousOutput: {
-                            txHash: cell.out_point.tx_hash,
-                            index: cell.out_point.index,
-                        },
-                        since: "0x0",
+                // update cell
+                if (this.mode === "update") {
+                    let newDataCapacity = new BN(byteLength * oneCkb)
+                    const currCell = this.currentCell
+
+                    // dataCellCapacity == cell.capcity
+                    const _dataCellByteLength = hexToBytes(currCell.outputData).byteLength
+                    const oldDataCapacity = new BN(_dataCellByteLength * oneCkb)
+
+                    const upCellRawTx = updateDataRawTx(
+                        addressToScript(this.address), // fromLockScript
+                        currCell.outPoint, // inputOutPoint
+                        oldDataCapacity,
+                        newDataCapacity, // newDataCapacity
+                        this.emptyCells, // unspentCells
+                        [secp256k1Dep], // deps
+                        fee, // fee
+                        this.textToHex(this.editData), // newDataHex
+                    )
+
+                    if (!window.ckb) return;
+                    console.log('upCellRawTx: ', upCellRawTx)
+
+                    const txResult = await window.ckb.signSend({
+                        tx: upCellRawTx
                     })
-                    rawTx.witnesses.push("0x")
-                    let cellCapacity = new BN(parseInt(cell.output.capacity))
-                    inputCapacity = inputCapacity.add(cellCapacity)
-                    if (inputCapacity.gt(total)) {
-                        if (inputCapacity.sub(total).gt(new BN("6100000000"))) {
-                            const change = inputCapacity.sub(total)
-                            rawTx.outputs.push({
-                                capacity: `0x${change.toString(16)}`,
-                                lock: this.toLock,
-                            })
-                            rawTx.outputsData.push("0x")
-                        }
-                        ok = true
-                        break
-                    }
+                    console.log('txResult: ', txResult)
                 }
-                if (!ok) {
-                    alert("You have not enough CKB!")
-                    return
-                }
-                rawTx.witnesses[0] = {
-                    lock: "",
-                    inputType: "",
-                    outputType: "",
-                }
-                //sign
-                const ckb = new CKB("https://prototype.ckbapp.dev/testnet/rpc")
-                const signedTx = ckb.signTransaction(`0x${this.privateKey}`)(rawTx)
-                console.log("signedTx:", JSON.stringify(signedTx, null, "  "))
-                this.loading = true
-                try {
-                    await ckb.rpc.sendTransaction(signedTx)
-                    setTimeout(() => {
-                        alert("Tx has been broadcasted, please refresh later. Typical block interval is 8~30s")
-                    }, 0)
-                } catch (e) {
-                    console.log("sendTransaction error:", e)
-                    alert("error:", e)
-                }
+
                 this.loading = false
                 this.showModel = false
-                setTimeout(() => {
-                    this.reload()
-                }, 1000)
+                this.reload()
             },
-            getCells: async function (lockArg) {
-                let a = 2;
-                // for test only
-                if (a === 1) {
-                    let response =
-                        {
-                            "jsonrpc": "2.0",
-                            "result": {
-                                "last_cursor": "0x409bd7e06f3ecf4be0f2fcd2188b23f1b9fcc88e5d4b65a8637b17723bbda3cce80114000000705ca2e725e9b26e6abb842ed2043ea80197dfd7000000000000300e0000000100000001",
-                                "objects": [
-                                    {
-                                        "block_number": "0x2f62",
-                                        "out_point": {
-                                            "index": "0x0",
-                                            "tx_hash": "0x2d6e2f573be0527baa28cd2fc1d36ffeabd6a9fc9145f9aed1b26a11bd794bcd"
-                                        },
-                                        "output": {
-                                            "capacity": "0x177825f00",
-                                            "lock": {
-                                                "args": "0x705ca2e725e9b26e6abb842ed2043ea80197dfd7",
-                                                "code_hash": "0x9bd7e06f3ecf4be0f2fcd2188b23f1b9fcc88e5d4b65a8637b17723bbda3cce8",
-                                                "hash_type": "type"
-                                            },
-                                            "type": null
-                                        },
-                                        "output_data": "0xc3d4",
-                                        "tx_index": "0x1"
-                                    },
-                                    {
-                                        "block_number": "0x300e",
-                                        "out_point": {
-                                            "index": "0x0",
-                                            "tx_hash": "0x501f0f0bb8715fc4fa1ad46485775cc67855908a718265bce8926fd602b3c756"
-                                        },
-                                        "output": {
-                                            "capacity": "0x1836e2100",
-                                            "lock": {
-                                                "args": "0x705ca2e725e9b26e6abb842ed2043ea80197dfd7",
-                                                "code_hash": "0x9bd7e06f3ecf4be0f2fcd2188b23f1b9fcc88e5d4b65a8637b17723bbda3cce8",
-                                                "hash_type": "type"
-                                            },
-                                            "type": null
-                                        },
-                                        "output_data": "0x12345678",
-                                        "tx_index": "0x1"
-                                    },
-                                    {
-                                        "block_number": "0x300e",
-                                        "out_point": {
-                                            "index": "0x1",
-                                            "tx_hash": "0x501f0f0bb8715fc4fa1ad46485775cc67855908a718265bce8926fd602b3c756"
-                                        },
-                                        "output": {
-                                            "capacity": "0x716f61f090",
-                                            "lock": {
-                                                "args": "0x705ca2e725e9b26e6abb842ed2043ea80197dfd7",
-                                                "code_hash": "0x9bd7e06f3ecf4be0f2fcd2188b23f1b9fcc88e5d4b65a8637b17723bbda3cce8",
-                                                "hash_type": "type"
-                                            },
-                                            "type": null
-                                        },
-                                        "output_data": "0x",
-                                        "tx_index": "0x1"
-                                    }
-                                ]
-                            },
-                            "id": 2
-                        }
-                    return response.result.objects;
-                }
-                this.loading = true
-                let payload = {
-                    "id": 2,
-                    "jsonrpc": "2.0",
-                    "method": "get_cells",
-                    "params": [
-                        {
-                            "script": {
-                                "code_hash": "0x9bd7e06f3ecf4be0f2fcd2188b23f1b9fcc88e5d4b65a8637b17723bbda3cce8",
-                                "hash_type": "type",
-                                "args": lockArg,
-                            },
-                            "script_type": "lock"
-                        },
-                        "asc",
-                        // "0x6"
-                        // "0x64"
-                        "0x2710"
-                    ]
-                }
-                const body = JSON.stringify(payload, null, "  ")
-                console.log("get_cells request:", body)
-                // let url = "http://localhost:8117/indexer"
-                let url = "https://prototype.ckbapp.dev/testnet/indexer"
+            getCells: async function () {
                 try {
-                    let res = await fetch(url, {
-                        method: "POST",
-                        body,
-                        cache: "no-store",
-                        headers: {
-                            // "Accept": "application/json",
-                            "Content-Type": "application/json",
-                            // "Content-Type": "text/plain",
-                            // "Origin": "http://localhost:8080",
-                            // "Access-Control-Allow-Origin": "*",
-                            // "Access-Control-Request-Method": "POST",
-                            // "Access-Control-Request-Headers": "content-type"
-                        },
-                        mode: "cors",
-                    })
-                    // res = await res.text()
-                    res = await res.json()
-                    // res = await res.text()
+                    let res = await window.ckb.getLiveCells({ limit: 50 })
                     console.log("get_cells response:", res)
-                    return res.result.objects
+                    return res.data
                 } catch (e) {
                     console.log("error:", e)
-                    alert("error:" + e)
+                    console.log("error:" + e)
                 }
                 this.loading = false
             },
-            groupCells: function (cells) {
+            groupCells: function (cells = []) {
                 let emptyCells = [];
                 let filledCells = [];
-                for (let cell of cells) {
-                    if (cell.output_data === "0x") {
+                const nonSudtCells = cells.filter(cell => !cell.typeHash);
+                console.log('nonSudtCells: ', nonSudtCells)
+                for (let cell of nonSudtCells) {
+                    if (cell.outputData === "0x") {
                         emptyCells.push(cell)
                     } else {
                         filledCells.push(cell)
@@ -446,7 +353,7 @@
                     const _capacity = parseInt(cell.output.capacity)
                     capacity += _capacity
 
-                    if (cell.output_data === "0x") {
+                    if (cell.outputData === "0x") {
                         free += _capacity
                     } else {
                         inuse += _capacity
